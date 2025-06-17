@@ -6,9 +6,9 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { theme } from './styles/theme';
 import { MainLayout } from './components/layout/MainLayout';
 import { TaskListPage } from './pages/tasks/TaskListPage';
+import { CalendarPage } from './pages/calendar/CalendarPage';
 
 // Placeholder components for other routes
-const CalendarPage = () => <div>Calendar Page (Coming Soon)</div>;
 const AnalyticsPage = () => <div>Analytics Page (Coming Soon)</div>;
 const SettingsPage = () => <div>Settings Page (Coming Soon)</div>;
 

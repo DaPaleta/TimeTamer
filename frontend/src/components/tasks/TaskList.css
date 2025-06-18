@@ -1,0 +1,65 @@
+.task-list-container {
+    background: #fafbff;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px #e0e0e0;
+    padding: 16px;
+    width: 350px;
+  }
+  .task-list-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 16px;
+  }
+  .search-box {
+    flex: 1;
+    border-radius: 8px;
+    border: 1px solid #e0e0e0;
+    padding: 8px 12px;
+  }
+  .segmented-controls {
+    /* Add your segmented control styles */
+  }
+  .filter-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+  }
+  .task-category {
+    margin-bottom: 24px;
+  }
+  .category-header {
+    font-weight: bold;
+    color: #888;
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 8px;
+  }
+  .task-section {
+    margin-bottom: 12px;
+  }
+  .section-header {
+    display: flex;
+    align-items: center;
+    font-weight: 600;
+    margin-bottom: 4px;
+  }
+  .badge {
+    background: #e0e7ff;
+    color: #3730a3;
+    border-radius: 8px;
+    padding: 2px 8px;
+    margin-left: 8px;
+    font-size: 12px;
+  }
+  .task-item {
+    background: #fff;
+    border-radius: 8px;
+    padding: 12px;
+    margin-bottom: 8px;
+    box-shadow: 0 1px 3px #e0e0e0;
+    display: flex;
+    align-items: center;
+    cursor: grab;
+    /* Add more styles for icons, etc. */
+  }

@@ -1,7 +1,6 @@
 // TaskList.jsx
 import React from "react";
 import "./TaskList.css"; // Custom styles
-import { Draggable } from "@fullcalendar/interaction";
 import TaskItem from "./TaskItem";
 
 // Define types for task, section, and tasksByCategory
@@ -22,19 +21,6 @@ export type TasksByCategory = {
 };
 
 export default function TaskList({ tasksByCategory }: { tasksByCategory: TasksByCategory }) {
-  React.useEffect(() => {
-    // Make tasks draggable for FullCalendar
-    new Draggable(document.getElementById("task-list")!, {
-      itemSelector: ".task-item",
-      eventData: function (eventEl) {
-        return {
-          title: eventEl.getAttribute("data-title"),
-          duration: eventEl.getAttribute("data-duration"),
-        };
-      },
-    });
-  }, []);
-
   return (
     <div className="task-list-container" id="task-list">
       <div className="task-list-header">

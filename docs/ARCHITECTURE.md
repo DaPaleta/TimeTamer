@@ -48,7 +48,7 @@ CREATE TABLE users (
     email VARCHAR(255) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     default_work_environment work_environment_enum DEFAULT 'home',
-    default_focus_times JSONB DEFAULT '[]',
+    focus_times JSONB DEFAULT '[]',
     timezone VARCHAR(50) DEFAULT 'UTC',
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
@@ -109,7 +109,7 @@ CREATE TABLE tasks (
     requires_deep_work BOOLEAN DEFAULT false,
     can_be_interrupted BOOLEAN DEFAULT true,
     requires_meeting BOOLEAN DEFAULT false,
-    is_collaborative BOOLEAN DEFAULT false,
+    is_endless BOOLEAN DEFAULT false,
     is_recurring BOOLEAN DEFAULT false,
     
     -- Recurring Pattern

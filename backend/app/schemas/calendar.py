@@ -29,7 +29,7 @@ class AvailabilitySlot(BaseModel):
 
 
 class CalendarDayBase(BaseModel):
-    date: str = Field(..., pattern="^\d{4}-\d{2}-\d{2}$", description="Date in YYYY-MM-DD format")
+    date: str = Field(..., pattern=r"^\d{4}-\d{2}-\d{2}$", description="Date in YYYY-MM-DD format")
     work_environment: str = Field(..., pattern="^(home|office|outdoors|hybrid)$", description="Work environment")
     focus_slots: List[FocusSlot] = []
     availability_slots: List[AvailabilitySlot] = []

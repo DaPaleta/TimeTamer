@@ -1,3 +1,4 @@
+import uuid
 from typing import List, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session, joinedload
@@ -65,7 +66,7 @@ async def create_category(
 
 @router.put("/categories/{category_id}", response_model=CategoryResponse)
 async def update_category(
-    category_id: str,
+    category_id: uuid.UUID,
     category_update: CategoryUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -114,7 +115,7 @@ async def update_category(
 
 @router.delete("/categories/{category_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_category(
-    category_id: str,
+    category_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -223,7 +224,7 @@ async def create_task(
     
     db_task = Task(
         user_id=current_user.user_id,
-        **task_data.dict()
+        **task_data.model_dump()
     )
     
     try:
@@ -241,7 +242,7 @@ async def create_task(
 
 @router.get("/{task_id}", response_model=TaskResponse)
 async def get_task(
-    task_id: str,
+    task_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -264,7 +265,7 @@ async def get_task(
 
 @router.put("/{task_id}", response_model=TaskResponse)
 async def update_task(
-    task_id: str,
+    task_id: uuid.UUID,
     task_update: TaskUpdate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
@@ -281,7 +282,7 @@ async def update_task(
             detail="Task not found"
         )
     
-    update_data = task_update.dict(exclude_unset=True)
+    update_data = task_update.model_dump(exclude_unset=True)
     
     # Validate category belongs to user
     if "category_id" in update_data and update_data["category_id"]:
@@ -324,7 +325,7 @@ async def update_task(
 
 @router.delete("/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_task(
-    task_id: str,
+    task_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -354,7 +355,7 @@ async def delete_task(
 # Task comments endpoints
 @router.get("/{task_id}/comments", response_model=List[TaskCommentResponse])
 async def get_task_comments(
-    task_id: str,
+    task_id: uuid.UUID,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -380,7 +381,7 @@ async def get_task_comments(
 
 @router.post("/{task_id}/comments", response_model=TaskCommentResponse, status_code=status.HTTP_201_CREATED)
 async def create_task_comment(
-    task_id: str,
+    task_id: uuid.UUID,
     comment_data: TaskCommentCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)

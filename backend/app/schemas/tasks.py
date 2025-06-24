@@ -48,6 +48,12 @@ class TaskBase(BaseModel):
     # Recurring Pattern
     recurring_pattern: Optional[dict] = None
 
+    @field_validator('priority')
+    def uppercase_priority(cls, v):
+        if v:
+            return v.upper()
+        return v
+
     @field_validator('fitting_environments')
     def validate_environments(cls, v):
         valid_envs = ["any", "home", "office", "outdoors", "hybrid"]
@@ -83,6 +89,12 @@ class TaskUpdate(BaseModel):
     
     # Recurring Pattern
     recurring_pattern: Optional[dict] = None
+
+    @field_validator('priority')
+    def uppercase_priority(cls, v):
+        if v:
+            return v.upper()
+        return v
 
 
 class TaskResponse(TaskBase):

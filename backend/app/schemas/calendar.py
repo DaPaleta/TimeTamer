@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, field_validator
 from typing import List, Optional
 from datetime import datetime
 import uuid
@@ -9,7 +9,7 @@ class FocusSlot(BaseModel):
     end_time: str = Field(..., pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$", description="Time in HH:MM format")
     focus_level: str = Field(..., pattern="^(high|medium|low)$", description="Focus level")
 
-    @validator('end_time')
+    @field_validator('end_time')
     def validate_time_range(cls, v, values):
         if 'start_time' in values and v <= values['start_time']:
             raise ValueError('End time must be after start time')
@@ -21,7 +21,7 @@ class AvailabilitySlot(BaseModel):
     end_time: str = Field(..., pattern="^([01]?[0-9]|2[0-3]):[0-5][0-9]$", description="Time in HH:MM format")
     status: str = Field(..., pattern="^(available|busy|tentative)$", description="Availability status")
 
-    @validator('end_time')
+    @field_validator('end_time')
     def validate_time_range(cls, v, values):
         if 'start_time' in values and v <= values['start_time']:
             raise ValueError('End time must be after start time')
@@ -51,8 +51,7 @@ class CalendarDayResponse(CalendarDayBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class CalendarDayBulkUpdate(BaseModel):

@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, validator
+from pydantic import BaseModel, Field, validator, field_validator
 from typing import Optional, List
 from datetime import datetime
 import uuid
@@ -23,8 +23,7 @@ class CategoryResponse(CategoryBase):
     user_id: uuid.UUID
     created_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class TaskBase(BaseModel):
@@ -49,7 +48,7 @@ class TaskBase(BaseModel):
     # Recurring Pattern
     recurring_pattern: Optional[dict] = None
 
-    @validator('fitting_environments')
+    @field_validator('fitting_environments')
     def validate_environments(cls, v):
         valid_envs = ["any", "home", "office", "outdoors", "hybrid"]
         for env in v:
@@ -97,8 +96,7 @@ class TaskResponse(TaskBase):
     updated_at: datetime
     category: Optional[CategoryResponse] = None
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class TaskListResponse(BaseModel):
@@ -129,8 +127,7 @@ class TaskCommentResponse(TaskCommentBase):
     created_at: datetime
     updated_at: datetime
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True}
 
 
 class TaskScheduleRequest(BaseModel):
@@ -138,7 +135,7 @@ class TaskScheduleRequest(BaseModel):
     end_time: datetime
     calendar_day_id: Optional[uuid.UUID] = None
 
-    @validator('end_time')
+    @field_validator('end_time')
     def validate_time_range(cls, v, values):
         if 'start_time' in values and v <= values['start_time']:
             raise ValueError('End time must be after start time')

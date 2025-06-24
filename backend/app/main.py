@@ -6,13 +6,24 @@ from fastapi.responses import JSONResponse
 from .core.config import settings
 from .api.v1.router import api_v1_router
 from .db.session import create_tables
+from contextlib import asynccontextmanager
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        create_tables()
+        print("Database tables created successfully")
+    except Exception as e:
+        print(f"Error creating database tables: {e}")
+    yield
 
 # Create FastAPI app
 app = FastAPI(
     title=settings.app_name,
     description="API for the Task Planning Application",
     version=settings.app_version,
-    debug=settings.debug
+    debug=settings.debug,
+    lifespan=lifespan
 )
 
 # Configure CORS
@@ -32,17 +43,6 @@ app.include_router(api_v1_router)
 async def health_check():
     return {"status": "healthy", "version": settings.app_version}
 
-
-@app.on_event("startup")
-async def startup_event():
-    """Initialize database tables on startup."""
-    try:
-        create_tables()
-        print("Database tables created successfully")
-    except Exception as e:
-        print(f"Error creating database tables: {e}")
-
-
 # Global exception handler
 @app.exception_handler(HTTPException)
 async def http_exception_handler(request, exc):
@@ -56,7 +56,6 @@ async def http_exception_handler(request, exc):
             }
         }
     )
-
 
 @app.exception_handler(Exception)
 async def general_exception_handler(request, exc):

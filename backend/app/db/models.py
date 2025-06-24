@@ -1,9 +1,9 @@
 from sqlalchemy import (
     Column, String, Integer, Boolean, DateTime, Text, 
-    ForeignKey, Enum, JSON, ARRAY, CheckConstraint, Index
+    ForeignKey, Enum, JSON, CheckConstraint, Index
 )
-from sqlalchemy.dialects.postgresql import UUID, ENUM
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 import uuid
@@ -48,7 +48,7 @@ class User(Base):
     email = Column(String(255), unique=True, nullable=False)
     password_hash = Column(String(255), nullable=False)
     default_work_environment = Column(
-        ENUM(WorkEnvironmentEnum), 
+        Enum(WorkEnvironmentEnum), 
         default=WorkEnvironmentEnum.HOME
     )
     focus_times = Column(JSON, default=list)
@@ -70,7 +70,7 @@ class UserCalendarDay(Base):
     calendar_day_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
     date = Column(String(10), nullable=False)  # YYYY-MM-DD format
-    work_environment = Column(ENUM(WorkEnvironmentEnum), nullable=False)
+    work_environment = Column(Enum(WorkEnvironmentEnum), nullable=False)
     focus_slots = Column(JSON, default=list)
     availability_slots = Column(JSON, default=list)
     created_at = Column(DateTime, default=func.now())
@@ -113,13 +113,13 @@ class Task(Base):
     title = Column(String(255), nullable=False)
     description = Column(Text)
     category_id = Column(UUID(as_uuid=True), ForeignKey("categories.category_id"))
-    priority = Column(ENUM(PriorityEnum), default=PriorityEnum.MEDIUM)
+    priority = Column(Enum(PriorityEnum), default=PriorityEnum.MEDIUM)
     estimated_duration_minutes = Column(Integer, nullable=False)
     deadline = Column(DateTime)
-    status = Column(ENUM(TaskStatusEnum), default=TaskStatusEnum.TODO)
+    status = Column(Enum(TaskStatusEnum), default=TaskStatusEnum.TODO)
     completed_at = Column(DateTime)
     jira_link = Column(String(500))
-    fitting_environments = Column(ARRAY(ENUM(WorkEnvironmentEnum)), default=["any"])
+    fitting_environments = Column(JSON, default=list)
     parent_task_id = Column(UUID(as_uuid=True), ForeignKey("tasks.task_id"))
     
     # Task Properties (Boolean flags)
@@ -135,7 +135,7 @@ class Task(Base):
     
     # Scheduling Information
     scheduled_slots = Column(JSON, default=list)
-    current_alerts = Column(ARRAY(Text), default=list)
+    current_alerts = Column(JSON, default=list)
     
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

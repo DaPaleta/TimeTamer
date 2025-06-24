@@ -144,13 +144,13 @@ async def delete_category(
 # Task endpoints
 @router.get("", response_model=TaskListResponse)
 async def get_tasks(
-    status: Optional[str] = Query(None, regex="^(todo|in_progress|completed|blocked|cancelled)$"),
+    status: Optional[str] = Query(None, pattern="^(todo|in_progress|completed|blocked|cancelled)$"),
     category_id: Optional[str] = Query(None),
-    priority: Optional[str] = Query(None, regex="^(low|medium|high|urgent)$"),
+    priority: Optional[str] = Query(None, pattern="^(low|medium|high|urgent)$"),
     page: int = Query(1, ge=1),
     limit: int = Query(20, ge=1, le=100),
-    sort_by: str = Query("created_at", regex="^(title|priority|deadline|created_at|updated_at)$"),
-    sort_order: str = Query("desc", regex="^(asc|desc)$"),
+    sort_by: str = Query("created_at", pattern="^(title|priority|deadline|created_at|updated_at)$"),
+    sort_order: str = Query("desc", pattern="^(asc|desc)$"),
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
@@ -181,7 +181,7 @@ async def get_tasks(
     ).all()
     
     return TaskListResponse(
-        tasks=tasks,
+        tasks=[TaskResponse.model_validate(task) for task in tasks],
         total=total,
         page=page,
         limit=limit,

@@ -52,6 +52,33 @@ uvicorn app.main:app --reload
 
 ### 5. Testing
 - (To be added) Use `pytest` for backend tests.
++ See the new section below on 'Running Tests' for details on how to run and what is covered by the backend test suite.
+
+## Running Tests
+
+To ensure the backend is ready for frontend integration and MVP requirements, run the automated test suite:
+
+1. **Seed the Database:**
+   - The test suite will automatically create and use a test database (SQLite in-memory by default).
+   - If you want to run tests against PostgreSQL, set the appropriate environment variables in `.env`.
+
+2. **Run Tests:**
+   ```bash
+   cd backend
+   pytest
+   ```
+
+3. **What is Tested:**
+   - All MVP endpoints are implemented and reachable
+   - Database is seeded with test data
+   - JWT-based authentication (register/login, protected routes)
+   - CORS is enabled for frontend origin
+   - User can register/login and get a JWT
+   - Can CRUD a task via API
+   - Can fetch calendar days and categories
+   - API returns correct error format (see ARCHITECTURE.md)
+
+Test results will be shown in the console. All tests should pass before integration with the frontend.
 
 ## Contribution Guidelines
 

@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional, Union
 from jose import JWTError, jwt
 from passlib.context import CryptContext
@@ -9,6 +9,7 @@ from ..db.session import get_db
 from ..db.models import User
 from ..schemas.auth import TokenData
 from .config import settings
+from uuid import UUID
 
 # Password hashing
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -31,9 +32,9 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
     """Create a JWT access token."""
     to_encode = data.copy()
     if expires_delta:
-        expire = datetime.utcnow() + expires_delta
+        expire = datetime.now(timezone.utc) + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=settings.access_token_expire_minutes)
+        expire = datetime.now(timezone.utc) + timedelta(minutes=settings.access_token_expire_minutes)
     
     to_encode.update({"exp": expire, "type": "access"})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
@@ -43,7 +44,7 @@ def create_access_token(data: dict, expires_delta: Optional[timedelta] = None) -
 def create_refresh_token(data: dict) -> str:
     """Create a JWT refresh token."""
     to_encode = data.copy()
-    expire = datetime.utcnow() + timedelta(days=settings.refresh_token_expire_days)
+    expire = datetime.now(timezone.utc) + timedelta(days=settings.refresh_token_expire_days)
     to_encode.update({"exp": expire, "type": "refresh"})
     encoded_jwt = jwt.encode(to_encode, settings.secret_key, algorithm=settings.algorithm)
     return encoded_jwt
@@ -64,7 +65,7 @@ def verify_token(token: str) -> TokenData:
                 headers={"WWW-Authenticate": "Bearer"},
             )
         
-        return TokenData(username=username, user_id=user_id)
+        return TokenData(username=username, user_id=UUID(user_id) if user_id else None)
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
@@ -102,7 +103,7 @@ def authenticate_user(db: Session, username: str, password: str) -> Optional[Use
     if not user:
         return None
     
-    if not verify_password(password, user.password_hash):
+    if not verify_password(password, str(user.password_hash)):
         return None
     
     return user 

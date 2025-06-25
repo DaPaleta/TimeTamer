@@ -1,12 +1,14 @@
 import React from 'react';
-import { Box, AppBar, Toolbar, IconButton, Typography, Drawer, List, ListItem, ListItemIcon, ListItemText, useTheme } from '@mui/material';
+import { Box, AppBar, Toolbar, IconButton, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, useTheme } from '@mui/material';
 import MenuIcon from '@mui/icons-material/Menu';
 import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
 import TaskIcon from '@mui/icons-material/Task';
 import AssessmentIcon from '@mui/icons-material/Assessment';
 import SettingsIcon from '@mui/icons-material/Settings';
+import LogoutIcon from '@mui/icons-material/Logout';
 import { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const DRAWER_WIDTH = 240;
 
@@ -21,32 +23,38 @@ export const MainLayout: React.FC = () => {
   const [mobileOpen, setMobileOpen] = useState(false);
   const theme = useTheme();
   const navigate = useNavigate();
+  const { logout } = useAuth();
 
   const handleDrawerToggle = () => {
     setMobileOpen(!mobileOpen);
+  };
+
+  const handleLogout = () => {
+    logout();
+    // navigate('/login'); // Not needed, logout already redirects
   };
 
   const drawer = (
     <Box sx={{ mt: 2 }}>
       <List>
         {menuItems.map((item) => (
-          <ListItem
-            button
-            key={item.text}
-            onClick={() => {
-              navigate(item.path);
-              setMobileOpen(false);
-            }}
-            sx={{
-              '&:hover': {
-                backgroundColor: theme.palette.primary.light + '20',
-              },
-            }}
-          >
-            <ListItemIcon sx={{ color: theme.palette.primary.main }}>
-              {item.icon}
-            </ListItemIcon>
-            <ListItemText primary={item.text} />
+          <ListItem key={item.text} disablePadding>
+            <ListItemButton
+              onClick={() => {
+                navigate(item.path);
+                setMobileOpen(false);
+              }}
+              sx={{
+                '&:hover': {
+                  backgroundColor: theme.palette.primary.light + '20',
+                },
+              }}
+            >
+              <ListItemIcon sx={{ color: theme.palette.primary.main }}>
+                {item.icon}
+              </ListItemIcon>
+              <ListItemText primary={item.text} />
+            </ListItemButton>
           </ListItem>
         ))}
       </List>
@@ -74,9 +82,12 @@ export const MainLayout: React.FC = () => {
           >
             <MenuIcon />
           </IconButton>
-          <Typography variant="h6" noWrap component="div">
+          <Typography variant="h6" noWrap component="div" sx={{ flexGrow: 1 }}>
             Task Planner
           </Typography>
+          <IconButton color="inherit" onClick={handleLogout} title="Logout">
+            <LogoutIcon />
+          </IconButton>
         </Toolbar>
       </AppBar>
 

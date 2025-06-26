@@ -101,7 +101,7 @@ CREATE TABLE tasks (
     status task_status_enum DEFAULT 'todo',
     completed_at TIMESTAMP,
     jira_link VARCHAR(500),
-    fitting_environments work_environment_enum[] DEFAULT '{"any"}',
+    fitting_environments work_environment_enum[] DEFAULT '{"home"}',
     parent_task_id UUID REFERENCES tasks(task_id) ON DELETE CASCADE,
     
     -- Task Properties (Boolean flags)

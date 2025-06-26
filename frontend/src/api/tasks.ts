@@ -39,7 +39,7 @@ export interface TaskInput {
   priority?: "low" | "medium" | "high" | "urgent";
   estimated_duration_minutes: number;
   deadline?: string;
-  fitting_environments?: ("home" | "office" | "outdoors" | "hybrid" | "any")[];
+  fitting_environments?: ("home" | "office" | "outdoors" | "hybrid")[];
   requires_focus?: boolean;
   requires_deep_work?: boolean;
   can_be_interrupted?: boolean;
@@ -47,6 +47,51 @@ export interface TaskInput {
   is_endless?: boolean;
   is_recurring?: boolean;
   recurring_pattern?: RecurringPattern;
+}
+
+export interface Task {
+  task_id: string;
+  user_id: string;
+  title: string;
+  description?: string;
+  category_id?: string;
+  category?: Category;
+  priority: 'low' | 'medium' | 'high' | 'urgent';
+  estimated_duration_minutes: number;
+  deadline?: string;
+  status: 'todo' | 'in_progress' | 'completed' | 'blocked' | 'cancelled';
+  completed_at?: string;
+  fitting_environments?: string[];
+  parent_task_id?: string;
+  requires_focus?: boolean;
+  requires_deep_work?: boolean;
+  can_be_interrupted?: boolean;
+  requires_meeting?: boolean;
+  is_endless?: boolean;
+  is_recurring?: boolean;
+  recurring_pattern?: RecurringPattern;
+  scheduled_slots?: { start_time: string; end_time: string; calendar_day_id: string }[];
+  current_alerts?: string[];
+  created_at: string;
+  updated_at: string;
+}
+
+export interface TaskListResponse {
+  tasks: Task[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export interface FetchTasksParams {
+  status?: string;
+  category_id?: string;
+  priority?: string;
+  page?: number;
+  limit?: number;
+  sort_by?: string;
+  sort_order?: 'asc' | 'desc';
+  search?: string;
 }
 
 export async function createTask(task: TaskInput) {
@@ -57,6 +102,29 @@ export async function createTask(task: TaskInput) {
 export async function fetchCategories(): Promise<Category[]> {
   const response = await api.get("/tasks/categories");
   return response.data;
+}
+
+export async function fetchTasks(params: FetchTasksParams = {}): Promise<TaskListResponse> {
+  const response = await api.get('/tasks', { params });
+  // If backend returns a flat array, wrap it for compatibility
+  if (Array.isArray(response.data)) {
+    return { tasks: response.data, total: response.data.length, page: 1, limit: response.data.length };
+  }
+  return response.data;
+}
+
+export async function fetchTaskById(task_id: string): Promise<Task> {
+  const response = await api.get(`/tasks/${task_id}`);
+  return response.data;
+}
+
+export async function updateTask(task_id: string, updates: Partial<TaskInput>): Promise<Task> {
+  const response = await api.put(`/tasks/${task_id}`, updates);
+  return response.data;
+}
+
+export async function deleteTask(task_id: string): Promise<void> {
+  await api.delete(`/tasks/${task_id}`);
 }
 
 export default api; 

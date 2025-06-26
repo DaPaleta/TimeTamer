@@ -11,6 +11,7 @@ import {
 import AccessTimeIcon from '@mui/icons-material/AccessTime';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import EditIcon from '@mui/icons-material/Edit';
+import DeleteIcon from '@mui/icons-material/Delete';
 import { format } from 'date-fns';
 
 interface TaskCardProps {
@@ -29,6 +30,7 @@ interface TaskCardProps {
     };
   };
   onEdit?: (id: string) => void;
+  onDelete?: (id: string) => void;
 }
 
 const priorityColors = {
@@ -46,7 +48,7 @@ const statusLabels = {
   cancelled: 'Cancelled',
 };
 
-export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit }) => {
+export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete }) => {
   const formatDuration = (minutes: number): string => {
     const hours = Math.floor(minutes / 60);
     const remainingMinutes = minutes % 60;
@@ -69,17 +71,30 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit }) => {
           <Typography variant="h6" component="h3" gutterBottom>
             {task.title}
           </Typography>
-          {onEdit && (
-            <Tooltip title="Edit task">
-              <IconButton
-                size="small"
-                onClick={() => onEdit(task.id)}
-                sx={{ ml: 1 }}
-              >
-                <EditIcon />
-              </IconButton>
-            </Tooltip>
-          )}
+          <Box display="flex" alignItems="center">
+            {onEdit && (
+              <Tooltip title="Edit task">
+                <IconButton
+                  size="small"
+                  onClick={() => onEdit(task.id)}
+                  sx={{ ml: 1 }}
+                >
+                  <EditIcon />
+                </IconButton>
+              </Tooltip>
+            )}
+            {onDelete && (
+              <Tooltip title="Delete task">
+                <IconButton
+                  size="small"
+                  onClick={() => onDelete(task.id)}
+                  sx={{ ml: 1 }}
+                >
+                  <DeleteIcon />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Box>
         </Box>
 
         {task.description && (

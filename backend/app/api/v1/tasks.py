@@ -164,7 +164,7 @@ async def get_tasks(
     if category_id:
         query = query.filter(Task.category_id == category_id)
     if priority:
-        query = query.filter(Task.priority == priority)
+        query = query.filter(Task.priority == priority.upper())
     
     # Get total count
     total = query.count()

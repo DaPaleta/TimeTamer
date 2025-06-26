@@ -2,7 +2,7 @@ from sqlalchemy import (
     Column, String, Integer, Boolean, DateTime, Text, 
     ForeignKey, Enum, JSON, CheckConstraint, Index
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import declarative_base
 from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
@@ -119,7 +119,7 @@ class Task(Base):
     status = Column(Enum(TaskStatusEnum), default=TaskStatusEnum.TODO)
     completed_at = Column(DateTime)
     jira_link = Column(String(500))
-    fitting_environments = Column(JSON, default=list)
+    fitting_environments = Column(ARRAY(Enum(WorkEnvironmentEnum)), default=['home'])
     parent_task_id = Column(UUID(as_uuid=True), ForeignKey("tasks.task_id"))
     
     # Task Properties (Boolean flags)
@@ -135,7 +135,7 @@ class Task(Base):
     
     # Scheduling Information
     scheduled_slots = Column(JSON, default=list)
-    current_alerts = Column(JSON, default=list)
+    current_alerts = Column(ARRAY(String), default=list)
     
     created_at = Column(DateTime, default=func.now())
     updated_at = Column(DateTime, default=func.now(), onupdate=func.now())

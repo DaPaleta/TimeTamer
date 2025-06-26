@@ -12,6 +12,7 @@ import {
 import SearchIcon from '@mui/icons-material/Search';
 import AddIcon from '@mui/icons-material/Add';
 import { TaskCard } from '../../components/tasks/TaskCard';
+import NewTaskDialog from '../../components/tasks/NewTaskDialog';
 
 type SortOption = 'deadline' | 'priority' | 'status';
 type FilterOption = 'all' | 'todo' | 'in_progress' | 'completed' | 'blocked';
@@ -53,10 +54,20 @@ export const TaskListPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [sortBy, setSortBy] = useState<SortOption>('deadline');
   const [filterBy, setFilterBy] = useState<FilterOption>('all');
+  const [dialogOpen, setDialogOpen] = useState(false);
 
   const handleCreateTask = () => {
-    // To be implemented - show task creation modal
-    console.log('Create task clicked');
+    setDialogOpen(true);
+  };
+
+  const handleDialogClose = () => {
+    setDialogOpen(false);
+  };
+
+  const handleTaskCreated = (task: unknown) => {
+    console.log('Task created:', task);
+    setDialogOpen(false);
+    // Optionally, refresh the task list here
   };
 
   const handleEditTask = (taskId: string) => {
@@ -86,7 +97,7 @@ export const TaskListPage: React.FC = () => {
         </Box>
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6}}>
             <TextField
               fullWidth
               variant="outlined"
@@ -102,7 +113,7 @@ export const TaskListPage: React.FC = () => {
               }}
             />
           </Grid>
-          <Grid item xs={6} md={3}>
+          <Grid size={{ xs: 12, md: 3}}>
             <TextField
               select
               fullWidth
@@ -116,7 +127,7 @@ export const TaskListPage: React.FC = () => {
               <MenuItem value="status">Status</MenuItem>
             </TextField>
           </Grid>
-          <Grid item xs={6} md={3}>
+          <Grid size={{ xs: 12, md: 3}}>
             <TextField
               select
               fullWidth
@@ -137,7 +148,7 @@ export const TaskListPage: React.FC = () => {
 
       <Grid container spacing={2}>
         {mockTasks.map((task) => (
-          <Grid item xs={12} md={6} lg={4} key={task.id}>
+          <Grid size={{ xs: 12, md: 6, lg: 4}} key={task.id}>
             <TaskCard task={task} onEdit={handleEditTask} />
           </Grid>
         ))}
@@ -155,6 +166,8 @@ export const TaskListPage: React.FC = () => {
           </Typography>
         </Box>
       )}
+
+      <NewTaskDialog open={dialogOpen} onClose={handleDialogClose} onTaskCreated={handleTaskCreated} />
     </Container>
   );
 }; 

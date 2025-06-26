@@ -7,13 +7,13 @@ import { theme } from './styles/theme';
 import { MainLayout } from './components/layout/MainLayout';
 import { TaskListPage } from './pages/tasks/TaskListPage';
 import { CalendarPage } from './pages/calendar/CalendarPage';
+import CategoryManagerPage from './pages/settings/CategoryManagerPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 
 // Placeholder components for other routes
 const AnalyticsPage = () => <div>Analytics Page (Coming Soon)</div>;
-const SettingsPage = () => <div>Settings Page (Coming Soon)</div>;
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated } = useAuth();
@@ -36,7 +36,7 @@ export const App: React.FC = () => {
                   <Route path="tasks" element={<TaskListPage />} />
                   <Route path="calendar" element={<CalendarPage />} />
                   <Route path="analytics" element={<AnalyticsPage />} />
-                  <Route path="settings" element={<SettingsPage />} />
+                  <Route path="settings" element={<CategoryManagerPage />} />
                   <Route path="planner" element={<div>Planner Page (protected)</div>} />
                 </Route>
               </Route>

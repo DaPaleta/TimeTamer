@@ -34,7 +34,7 @@ class TaskBase(BaseModel):
     estimated_duration_minutes: int = Field(..., gt=0, description="Duration in minutes")
     deadline: Optional[datetime] = None
     jira_link: Optional[str] = Field(None, max_length=500)
-    fitting_environments: List[str] = Field(default=["any"])
+    fitting_environments: List[str] = Field(default=["home"])
     parent_task_id: Optional[uuid.UUID] = None
     
     # Task Properties
@@ -56,11 +56,13 @@ class TaskBase(BaseModel):
 
     @field_validator('fitting_environments')
     def validate_environments(cls, v):
-        valid_envs = ["any", "home", "office", "outdoors", "hybrid"]
+        valid_envs = ["home", "office", "outdoors", "hybrid"]
+        v_upper = []
         for env in v:
             if env not in valid_envs:
                 raise ValueError(f"Invalid environment: {env}. Must be one of {valid_envs}")
-        return v
+            v_upper.append(env.upper())
+        return v_upper
 
 
 class TaskCreate(TaskBase):

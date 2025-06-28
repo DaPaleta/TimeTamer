@@ -6,6 +6,16 @@ interface TaskItemProps {
 }
 
 const TaskItem: React.FC<TaskItemProps> = memo(({ task }) => {
+  const getPriorityColor = (priority?: string) => {
+    switch (priority) {
+      case 'urgent': return '#f44336';
+      case 'high': return '#ff9800';
+      case 'medium': return '#ffc107';
+      case 'low': return '#4caf50';
+      default: return '#9e9e9e';
+    }
+  };
+
   return (
     <div
       className="task-item"
@@ -14,12 +24,34 @@ const TaskItem: React.FC<TaskItemProps> = memo(({ task }) => {
       data-task-id={task.id}
       draggable={true}
     >
-      {/* Task content here */}
-      <span className="task-title">{task.title}</span>
-      {task.duration && (
-        <span className="task-duration">{task.duration}</span>
-      )}
-      {/* ...other task details */}
+      <div className="task-content">
+        <div className="task-header">
+          <span className="task-title">{task.title}</span>
+          {task.priority && (
+            <span 
+              className="task-priority"
+              style={{ 
+                backgroundColor: getPriorityColor(task.priority),
+                color: 'white',
+                fontSize: '10px',
+                padding: '2px 6px',
+                borderRadius: '4px',
+                textTransform: 'uppercase'
+              }}
+            >
+              {task.priority}
+            </span>
+          )}
+        </div>
+        {task.description && (
+          <div className="task-description">{task.description}</div>
+        )}
+        <div className="task-footer">
+          {task.duration && (
+            <span className="task-duration">{task.duration}</span>
+          )}
+        </div>
+      </div>
     </div>
   );
 });

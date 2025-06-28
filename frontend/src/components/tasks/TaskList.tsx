@@ -9,6 +9,8 @@ export interface Task {
   id: string;
   title: string;
   duration?: string;
+  priority?: string;
+  description?: string;
   // Add other task properties as needed
 }
 

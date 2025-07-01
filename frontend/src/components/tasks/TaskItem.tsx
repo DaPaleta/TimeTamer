@@ -23,9 +23,10 @@ const TaskItem: React.FC<TaskItemProps> = memo(({ task }) => {
       data-duration={task.duration}
       data-task-id={task.id}
       draggable={true}
+      data-testid="task-item"
     >
-      <div className="task-content">
-        <div className="task-header">
+      <div className="task-content" data-testid="task-content">
+        <div className="task-header" data-testid="task-header">
           <span className="task-title">{task.title}</span>
           {task.priority && (
             <span 
@@ -46,7 +47,7 @@ const TaskItem: React.FC<TaskItemProps> = memo(({ task }) => {
         {task.description && (
           <div className="task-description">{task.description}</div>
         )}
-        <div className="task-footer">
+        <div className="task-footer" data-testid="task-footer">
           {task.duration && (
             <span className="task-duration">{task.duration}</span>
           )}

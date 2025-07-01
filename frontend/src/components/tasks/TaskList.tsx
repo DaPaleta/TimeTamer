@@ -106,15 +106,12 @@ export default function TaskList({ tasksByCategory }: { tasksByCategory: TasksBy
       </div>
       {Object.entries(tasksState).map(([category, sections]) => (
         <div className="task-category" key={category} data-category={category}>
-          <div className="category-header">
-            <span>{category}</span>
-            <a href="#">Collapse</a>
-          </div>
           {sections.map((section: TaskSection) => (
-            <div className="task-section" key={section.name}>
+            <div className="task-section" key={section.name} data-category={category}>
               <div className="section-header">
                 <span>{section.name}</span>
                 <span className="badge">{section.tasks.length}</span>
+                <a href="#" className="task-section-collapse">▲</a>
               </div>
               <ReactSortable
                 list={section.tasks}

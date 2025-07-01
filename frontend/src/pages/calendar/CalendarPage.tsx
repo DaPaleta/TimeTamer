@@ -39,13 +39,10 @@ export const CalendarPage = () => {
             }];
           }
           
-          // Convert API task format to TaskList component format
+          // Pass the full API task object, but add a formatted duration field for display
           const taskItem = {
-            id: task.task_id,
-            title: task.title,
-            duration: formatDuration(task.estimated_duration_minutes),
-            priority: task.priority,
-            description: task.description
+            ...task,
+            duration: formatDuration(task.estimated_duration_minutes)
           };
           
           groupedTasks[categoryName][0].tasks.push(taskItem);

@@ -98,6 +98,12 @@ class TaskUpdate(BaseModel):
             return v.upper()
         return v
 
+    @field_validator('status')
+    def uppercase_status(cls, v):
+        if v:
+            return v.upper()
+        return v
+
 
 class TaskResponse(TaskBase):
     task_id: uuid.UUID
@@ -111,6 +117,12 @@ class TaskResponse(TaskBase):
     category: Optional[CategoryResponse] = None
 
     model_config = {"from_attributes": True}
+
+    @field_validator('status')
+    def uppercase_status(cls, v):
+        if v:
+            return v.upper()
+        return v
 
 
 class TaskListResponse(BaseModel):

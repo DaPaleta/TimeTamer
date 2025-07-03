@@ -65,6 +65,7 @@ export default function NewTaskDialog({
     description: "",
     category_id: undefined,
     priority: "medium",
+    status: "todo",
     estimated_duration_minutes: 30,
     deadline: null,
     fitting_environments: [],
@@ -170,6 +171,7 @@ export default function NewTaskDialog({
           ? form.fitting_environments.map(env => env.toUpperCase()) as ('home'|'office'|'hybrid'|'outdoors')[]
           : [],
         deadline: form.deadline ? form.deadline.toISOString() : undefined,
+        status: form.status || "todo",
         recurring_pattern:
           form.is_recurring && form.recurring_pattern
             ? {

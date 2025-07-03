@@ -60,8 +60,8 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
       const statuses = ['To Do', 'In Progress', 'Completed', 'Blocked', 'Cancelled'];
       const grouped: TasksBySortingKey = {};
       statuses.forEach(status => {
-        const statusKey = status.toLowerCase().replace(/ /g, '_');
-        grouped[status] = allTasks.filter((t: TaskType) => (t.status || '').toLowerCase() === statusKey);
+        const statusKey = status.toLowerCase().replace(/[ _]/g, '');
+        grouped[status] = allTasks.filter((t: TaskType) => (t.status || '').toLowerCase().replace(/[ _]/g, '') === statusKey);
       });
       return grouped;
     } else if (sortKey === 'deadline') {
@@ -110,6 +110,7 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
       const movedTaskId = evt.item.getAttribute('data-task-id');
       const fromSectionName = evt.from.closest('.task-section')?.getAttribute('data-section-name');
       const toSectionName = evt.to.closest('.task-section')?.getAttribute('data-section-name');
+      console.debug('fromSectionName', fromSectionName, 'toSectionName', toSectionName, 'movedTaskId', movedTaskId);
       if (fromSectionName && toSectionName && movedTaskId) {
         // Find the moved task
         const movedTask = groupedTasks[fromSectionName]?.find((task: TaskType) => task.task_id === movedTaskId);
@@ -119,7 +120,10 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
           if (sortKey === 'category') {
             updates.category_id = toSectionName;
           } else if (sortKey === 'priority') {
-            updates.priority = toSectionName as 'low' | 'medium' | 'high' | 'urgent';
+            updates.priority = toSectionName.toLowerCase() as 'low' | 'medium' | 'high' | 'urgent';
+          } else if (sortKey === 'status') {
+            const statusKey = toSectionName.toLowerCase().replace(/[ _]/g, '').replace('inprogress', 'in_progress');
+            updates.status = statusKey as 'todo' | 'in_progress' | 'completed' | 'blocked' | 'cancelled';
           }
           if (Object.keys(updates).length > 0) {
             try {

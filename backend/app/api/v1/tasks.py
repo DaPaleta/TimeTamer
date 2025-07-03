@@ -160,7 +160,7 @@ async def get_tasks(
     
     # Apply filters
     if status:
-        query = query.filter(Task.status == status)
+        query = query.filter(Task.status == status.upper())
     if category_id:
         query = query.filter(Task.category_id == category_id)
     if priority:

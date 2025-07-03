@@ -37,6 +37,7 @@ export interface TaskInput {
   description?: string;
   category_id?: string;
   priority?: "low" | "medium" | "high" | "urgent";
+  status?: "todo" | "in_progress" | "completed" | "blocked" | "cancelled";
   estimated_duration_minutes: number;
   deadline?: string;
   fitting_environments?: ("home" | "office" | "outdoors" | "hybrid")[];

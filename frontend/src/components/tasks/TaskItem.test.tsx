@@ -1,20 +1,32 @@
 import { describe, it, expect } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import TaskItem from './TaskItem';
-import type { Task } from './TaskList';
+import type { Task } from "../../api/tasks";
 
-const mockTask: Task = {
-  id: 'task-1',
+
+const mockTask: Task & { duration: string } = {
+  task_id: 'task-1',
   title: 'Complete project proposal',
-  duration: '02:00:00',
+  estimated_duration_minutes: 120,
   priority: 'high',
-  description: 'Finish the quarterly project proposal'
+  description: 'Finish the quarterly project proposal',
+  user_id: 'user-1',
+  status: 'todo',
+  created_at: '2023-01-01T00:00:00Z',
+  updated_at: '2023-01-01T00:00:00Z',
+  duration: '02:00:00'
 };
 
-const mockTaskWithoutOptional: Task = {
-  id: 'task-2',
+const mockTaskWithoutOptional: Task & { duration: string } = {
+  task_id: 'task-2',
   title: 'Simple task',
-  duration: '01:00:00'
+  estimated_duration_minutes: 60,
+  user_id: 'user-2',
+  status: 'todo',
+  created_at: '2023-01-01T00:00:00Z',
+  updated_at: '2023-01-01T00:00:00Z',
+  duration: '01:00:00',
+  priority: 'low'
 };
 
 describe('TaskItem Component', () => {
@@ -38,12 +50,19 @@ describe('TaskItem Component', () => {
     });
 
     it('renders task without duration', () => {
-      const taskWithoutDuration: Task = {
-        id: 'task-3',
-        title: 'Task without dura tion'
+      const taskWithoutDuration: Task & { duration: string } = {
+        task_id: 'task-3',
+        title: 'Task without dura tion',
+        estimated_duration_minutes: 0,
+        user_id: 'user-3',
+        status: 'todo',
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z',
+        duration: '00:00:00',
+        priority: 'low'
       };
       
-      render(<TaskItem task={taskWithoutDuration} />);
+      render(<TaskItem task={{ ...taskWithoutDuration, duration: '00:00:00' }} />);
       
       expect(screen.getByText('Task without dura tion')).toBeInTheDocument();
       expect(screen.queryByText(/duration/i)).not.toBeInTheDocument();
@@ -74,9 +93,10 @@ describe('TaskItem Component', () => {
 
   describe('Priority Badge', () => {
     it('displays priority badge with correct color for urgent', () => {
-      const urgentTask: Task = {
+      const urgentTask: Task & { duration: string } = {
         ...mockTask,
-        priority: 'urgent'
+        priority: 'urgent',
+        duration: '02:00:00'
       };
       
       render(<TaskItem task={urgentTask} />);
@@ -93,9 +113,10 @@ describe('TaskItem Component', () => {
     });
 
     it('displays priority badge with correct color for medium', () => {
-      const mediumTask: Task = {
+      const mediumTask: Task & { duration: string } = {
         ...mockTask,
-        priority: 'medium'
+        priority: 'medium',
+        duration: '02:00:00'
       };
       
       render(<TaskItem task={mediumTask} />);
@@ -105,9 +126,10 @@ describe('TaskItem Component', () => {
     });
 
     it('displays priority badge with correct color for low', () => {
-      const lowTask: Task = {
+      const lowTask: Task & { duration: string } = {
         ...mockTask,
-        priority: 'low'
+        priority: 'low',
+        duration: '02:00:00'
       };
       
       render(<TaskItem task={lowTask} />);
@@ -117,9 +139,10 @@ describe('TaskItem Component', () => {
     });
 
     it('displays priority badge with default color for unknown priority', () => {
-      const unknownTask: Task = {
+      const unknownTask: Task & { duration: string } = {
         ...mockTask,
-        priority: 'unknown' as 'urgent' | 'high' | 'medium' | 'low'
+        priority: 'unknown' as 'urgent' | 'high' | 'medium' | 'low',
+        duration: '02:00:00'
       };
       
       render(<TaskItem task={unknownTask} />);
@@ -157,12 +180,19 @@ describe('TaskItem Component', () => {
     });
 
     it('does not display duration when not provided', () => {
-      const taskWithoutDuration: Task = {
-        id: 'task-3',
-        title: 'Task without dur ation'
+      const taskWithoutDuration: Task & { duration?: string } = {
+        task_id: 'task-3',
+        title: 'Task without dura tion',
+        estimated_duration_minutes: 0,
+        user_id: 'user-3',
+        status: 'todo',
+        created_at: '2023-01-01T00:00:00Z',
+        updated_at: '2023-01-01T00:00:00Z',
+        duration: '00:00:00',
+        priority: 'low'
       };
       
-      render(<TaskItem task={taskWithoutDuration} />);
+      render(<TaskItem task={{ ...taskWithoutDuration, duration: '00:00:00' }} />);
       
       expect(screen.queryByText(/duration/i)).not.toBeInTheDocument();
     });

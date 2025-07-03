@@ -25,21 +25,17 @@
     border: none;
     font-size: 20px;
   }
-  .task-category {
-    margin-bottom: 24px;
+  .task-section {
+    margin-bottom: 12px;
     border: 2px solid transparent;
     border-radius: 12px;
     padding: 8px;
     transition: all 0.2s ease;
   }
   
-  .task-category.sortable-ghost {
+  .task-section.sortable-ghost {
     border-color: #2196f3;
     background: rgba(33, 150, 243, 0.1);
-  }
-  
-  .task-section {
-    margin-bottom: 12px;
   }
   .section-header {
     display: flex;
@@ -156,7 +152,7 @@
   }
   
   /* Cross-category drop zone styles */
-  .task-category.sortable-put {
+  .task-section.sortable-put {
     border-color: #4caf50;
     background: rgba(76, 175, 80, 0.1);
   }

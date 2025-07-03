@@ -163,8 +163,8 @@ describe('CalendarPage Component', () => {
       });
       
       // Check that tasks are grouped under their categories
-      const workCategory = screen.getByText('Work').closest('.task-category');
-      const personalCategory = screen.getByText('Personal').closest('.task-category');
+      const workCategory = screen.getByText('Work').closest('.task-section');
+      const personalCategory = screen.getByText('Personal').closest('.task-section');
       
       expect(workCategory).toBeInTheDocument();
       expect(personalCategory).toBeInTheDocument();

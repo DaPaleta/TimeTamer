@@ -1,8 +1,8 @@
 import React, { memo } from "react";
-import type { Task } from "./TaskList";
+import type { Task } from "../../api/tasks";
 
 interface TaskItemProps {
-  task: Task;
+  task: Task & { duration: string };
 }
 
 const TaskItem: React.FC<TaskItemProps> = memo(({ task }) => {
@@ -21,7 +21,7 @@ const TaskItem: React.FC<TaskItemProps> = memo(({ task }) => {
       className="task-item"
       data-title={task.title}
       data-duration={task.duration}
-      data-task-id={task.id}
+      data-task-id={task.task_id}
       draggable={true}
       data-testid="task-item"
     >

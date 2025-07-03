@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import TaskList, { type TasksByCategory } from './TaskList';
+import TaskList, { type TasksBySortingKey } from './TaskList';
 
 // Mock react-sortablejs
 vi.mock('react-sortablejs', () => ({
@@ -28,40 +28,45 @@ vi.mock('react-sortablejs', () => ({
   }
 }));
 
-const mockTasksByCategory: TasksByCategory = {
+const mockTasksBySortingKey: TasksBySortingKey = {
   'Work': [
     {
-      name: 'Work',
-      tasks: [
-        {
-          id: 'task-1',
-          title: 'Complete project proposal',
-          duration: '02:00:00',
-          priority: 'high',
-          description: 'Finish the quarterly project proposal'
-        },
-        {
-          id: 'task-2',
-          title: 'Review code',
-          duration: '01:30:00',
-          priority: 'medium',
-          description: 'Code review for new feature'
-        }
-      ]
+      task_id: 'task-1',
+      title: 'Complete project proposal',
+      priority: 'high',
+      description: 'Finish the quarterly project proposal',
+      user_id: 'user-1',
+      estimated_duration_minutes: 120,
+      status: 'todo',
+      created_at: '2023-01-01T00:00:00Z',
+      updated_at: '2023-01-01T00:00:00Z',
+      category: { category_id: 'work', name: 'Work', color_hex: '#000000' }
+    },
+    {
+      task_id: 'task-2',
+      title: 'Review code',
+      priority: 'medium',
+      description: 'Code review for new feature',
+      user_id: 'user-1',
+      estimated_duration_minutes: 90,
+      status: 'todo',
+      created_at: '2023-01-01T00:00:00Z',
+      updated_at: '2023-01-01T00:00:00Z',
+      category: { category_id: 'work', name: 'Work', color_hex: '#000000' }
     }
   ],
   'Personal': [
     {
-      name: 'Personal',
-      tasks: [
-        {
-          id: 'task-3',
-          title: 'Buy groceries',
-          duration: '00:45:00',
-          priority: 'low',
-          description: 'Weekly grocery shopping'
-        }
-      ]
+      task_id: 'task-3',
+      title: 'Buy groceries',
+      priority: 'low',
+      description: 'Weekly grocery shopping',
+      user_id: 'user-2',
+      estimated_duration_minutes: 45,
+      status: 'todo',
+      created_at: '2023-01-01T00:00:00Z',
+      updated_at: '2023-01-01T00:00:00Z',
+      category: { category_id: 'personal', name: 'Personal', color_hex: '#000000' }
     }
   ]
 };
@@ -73,14 +78,14 @@ describe('TaskList Component', () => {
 
   describe('Rendering', () => {
     it('renders task list with categories and sections', () => {
-      render(<TaskList tasksByCategory={mockTasksByCategory} />);
+      render(<TaskList tasksBySortingKey={mockTasksBySortingKey} />);
       
       expect(screen.getByText('Work')).toBeInTheDocument();
       expect(screen.getByText('Personal')).toBeInTheDocument();
     });
 
     it('displays task items with all properties', () => {
-      render(<TaskList tasksByCategory={mockTasksByCategory} />);
+      render(<TaskList tasksBySortingKey={mockTasksBySortingKey} />);
       
       expect(screen.getByText('Complete project proposal')).toBeInTheDocument();
       expect(screen.getByText('Review code')).toBeInTheDocument();
@@ -103,22 +108,22 @@ describe('TaskList Component', () => {
     });
 
     it('displays task counts correctly', () => {
-      render(<TaskList tasksByCategory={mockTasksByCategory} />);
+      render(<TaskList tasksBySortingKey={mockTasksBySortingKey} />);
       
       expect(screen.getByText('2')).toBeInTheDocument(); // Work section
       expect(screen.getByText('1')).toBeInTheDocument(); // Personal section
     });
 
     it('handles empty task list', () => {
-      const emptyTasks: TasksByCategory = {};
-      render(<TaskList tasksByCategory={emptyTasks} />);
+      const emptyTasks: TasksBySortingKey = {};
+      render(<TaskList tasksBySortingKey={emptyTasks} />);
       
       expect(screen.getByPlaceholderText('Search for something...')).toBeInTheDocument();
       expect(screen.queryByText(/task/i)).not.toBeInTheDocument();
     });
 
     it('renders search box and filter button', () => {
-      render(<TaskList tasksByCategory={mockTasksByCategory} />);
+      render(<TaskList tasksBySortingKey={mockTasksBySortingKey} />);
       
       expect(screen.getByPlaceholderText('Search for something...')).toBeInTheDocument();
       expect(screen.getByText('☰')).toBeInTheDocument();
@@ -127,7 +132,7 @@ describe('TaskList Component', () => {
 
   describe('Task Item Properties', () => {
     it('has proper data attributes for dragging', () => {
-      render(<TaskList tasksByCategory={mockTasksByCategory} />);
+      render(<TaskList tasksBySortingKey={mockTasksBySortingKey} />);
       
       const taskItems = screen.getAllByTestId('task-item');
       expect(taskItems).toHaveLength(3);
@@ -141,7 +146,7 @@ describe('TaskList Component', () => {
     });
 
     it('displays priority badges with correct colors', () => {
-      render(<TaskList tasksByCategory={mockTasksByCategory} />);
+      render(<TaskList tasksBySortingKey={mockTasksBySortingKey} />);
       
       const highPriorityBadge = screen.getByText('high');
       const mediumPriorityBadge = screen.getByText('medium');
@@ -155,7 +160,7 @@ describe('TaskList Component', () => {
 
   describe('Sortable Functionality', () => {
     it('renders sortable containers for each section', () => {
-      render(<TaskList tasksByCategory={mockTasksByCategory} />);
+      render(<TaskList tasksBySortingKey={mockTasksBySortingKey} />);
       
       const sortableContainers = screen.getAllByTestId('sortable-container');
       expect(sortableContainers).toHaveLength(2); // One for each section
@@ -163,7 +168,7 @@ describe('TaskList Component', () => {
 
     it('handles cross-category move events', async () => {
       const user = userEvent.setup();
-      render(<TaskList tasksByCategory={mockTasksByCategory} />);
+      render(<TaskList tasksBySortingKey={mockTasksBySortingKey} />);
       
       const sortableContainers = screen.getAllByTestId('sortable-container');
       
@@ -179,7 +184,7 @@ describe('TaskList Component', () => {
   describe('State Management', () => {
     it('updates task state when tasks are moved', async () => {
       const user = userEvent.setup();
-      render(<TaskList tasksByCategory={mockTasksByCategory} />);
+      render(<TaskList tasksBySortingKey={mockTasksBySortingKey} />);
       
       // Initial state should have 2 tasks in Work category
       expect(screen.getByText('2')).toBeInTheDocument();

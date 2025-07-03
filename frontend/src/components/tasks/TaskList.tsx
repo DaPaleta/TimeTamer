@@ -20,70 +20,48 @@ interface SortableEvent {
   item: HTMLElement;
 }
 
-export interface TaskSection {
-  name: string;
-  tasks: TaskType[];
-}
-
-export type TasksByCategory = {
-  [category: string]: TaskSection[];
+export type TasksBySortingKey = {
+  [sectionName: string]: TaskType[];
 };
 
-export default function TaskList({ tasksByCategory }: { tasksByCategory: TasksByCategory }) {
+// Helper to format minutes as HH:MM:SS
+function formatDuration(minutes?: number): string {
+  if (!minutes) return '00:30:00';
+  const h = Math.floor(minutes / 60).toString().padStart(2, '0');
+  const m = Math.floor(minutes % 60).toString().padStart(2, '0');
+  return `${h}:${m}:00`;
+}
+
+export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: TasksBySortingKey }) {
   const [sortKey, setSortKey] = useState<string>(() => localStorage.getItem('taskListSortKey') || 'category');
   // Flatten all tasks from the initial prop for a source-of-truth state
-  const initialTasks: TaskType[] = useMemo(() => Object.values(tasksByCategory).flatMap(sections => sections.flatMap(section => section.tasks)), [tasksByCategory]);
+  const initialTasks: TaskType[] = useMemo(() => Object.values(tasksBySortingKey).flat(), [tasksBySortingKey]);
   const [baseTasks, setBaseTasks] = useState<TaskType[]>(initialTasks);
   const processingMoveRef = useRef(false);
 
-  // Build a map from category_id to display name using the initial tasksByCategory prop
-  const categoryIdToName = useMemo(() => {
-    const map: Record<string, string> = {};
-    Object.entries(tasksByCategory).forEach(([catKey, sections]) => {
-      sections.forEach(section => {
-        map[catKey] = section.name;
-      });
-    });
-    return map;
-  }, [tasksByCategory]);
-
   // Grouping function: always groups from baseTasks
-  const groupTasks = useCallback((allTasks: TaskType[], sortKey: string): TasksByCategory => {
+  const groupTasks = useCallback((allTasks: TaskType[], sortKey: string): TasksBySortingKey => {
     if (sortKey === 'category') {
-      // Group by category_id, robustly using all available info for display name
-      const grouped: TasksByCategory = {};
+      const grouped: TasksBySortingKey = {};
       allTasks.forEach(task => {
-        const catId = task.category_id || 'Uncategorized';
-        const displayName =
-          categoryIdToName[catId] ||
-          (task.category && task.category.name) ||
-          (catId === 'Uncategorized' ? 'Uncategorized' : catId);
-        if (!grouped[catId]) grouped[catId] = [{ name: displayName, tasks: [] }];
-        grouped[catId][0].tasks.push(task);
+        const displayName = (task.category && task.category.name) || 'Uncategorized';
+        if (!grouped[displayName]) grouped[displayName] = [];
+        grouped[displayName].push(task);
       });
       return grouped;
     } else if (sortKey === 'priority') {
-      const priorities = ['urgent', 'high', 'medium', 'low'];
-      const grouped: TasksByCategory = {};
+      const priorities = ['Urgent', 'High', 'Medium', 'Low'];
+      const grouped: TasksBySortingKey = {};
       priorities.forEach(priority => {
-        grouped[priority] = [
-          {
-            name: priority.charAt(0).toUpperCase() + priority.slice(1),
-            tasks: allTasks.filter((t: TaskType) => (t.priority || '').toLowerCase() === priority) || []
-          }
-        ];
+        grouped[priority] = allTasks.filter((t: TaskType) => (t.priority || '').toLowerCase() === priority.toLowerCase());
       });
       return grouped;
     } else if (sortKey === 'status') {
-      const statuses = ['todo', 'in_progress', 'completed', 'blocked', 'cancelled'];
-      const grouped: TasksByCategory = {};
+      const statuses = ['To Do', 'In Progress', 'Completed', 'Blocked', 'Cancelled'];
+      const grouped: TasksBySortingKey = {};
       statuses.forEach(status => {
-        grouped[status] = [
-          {
-            name: status.replace('_', ' ').replace(/\b\w/g, (l: string) => l.toUpperCase()),
-            tasks: allTasks.filter((t: TaskType) => (t.status || '').toLowerCase() === status) || []
-          }
-        ];
+        const statusKey = status.toLowerCase().replace(/ /g, '_');
+        grouped[status] = allTasks.filter((t: TaskType) => (t.status || '').toLowerCase() === statusKey);
       });
       return grouped;
     } else if (sortKey === 'deadline') {
@@ -95,12 +73,12 @@ export default function TaskList({ tasksByCategory }: { tasksByCategory: TasksBy
       });
       const withoutDeadline = allTasks.filter((t: TaskType) => !t.deadline);
       return {
-        deadline: [{ name: 'All Tasks', tasks: [...withDeadline, ...withoutDeadline] }]
+        'All Tasks': [...withDeadline, ...withoutDeadline]
       };
     }
     // fallback
     return {};
-  }, [tasksByCategory, categoryIdToName]);
+  }, [tasksBySortingKey]);
 
   // Regroup tasks for rendering
   const groupedTasks = useMemo(() => groupTasks(baseTasks, sortKey), [baseTasks, sortKey, groupTasks]);
@@ -113,11 +91,11 @@ export default function TaskList({ tasksByCategory }: { tasksByCategory: TasksBy
   };
 
   // Move handler: update baseTasks, then regroup
-  const handleTaskMove = useCallback(async (category: string, sectionName: string, newTasks: TaskType[], sectionIndex?: number) => {
+  const handleTaskMove = useCallback(async (sectionName: string, newTasks: TaskType[]) => {
     if (processingMoveRef.current) return;
     setBaseTasks((prevBaseTasks) => {
       // Remove all tasks that are in the affected section
-      const tasksToRemove = groupedTasks[category]?.[sectionIndex ?? 0]?.tasks.map(t => t.task_id) || [];
+      const tasksToRemove = groupedTasks[sectionName]?.map(t => t.task_id) || [];
       const filtered = prevBaseTasks.filter(t => !tasksToRemove.includes(t.task_id));
       // Add the new tasks for this section
       return [...filtered, ...newTasks];
@@ -130,18 +108,18 @@ export default function TaskList({ tasksByCategory }: { tasksByCategory: TasksBy
       if (processingMoveRef.current) return;
       processingMoveRef.current = true;
       const movedTaskId = evt.item.getAttribute('data-task-id');
-      const fromCategory = evt.from.closest('.task-category')?.getAttribute('data-category');
-      const toCategory = evt.to.closest('.task-category')?.getAttribute('data-category');
-      if (fromCategory && toCategory && movedTaskId) {
+      const fromSectionName = evt.from.closest('.task-section')?.getAttribute('data-section-name');
+      const toSectionName = evt.to.closest('.task-section')?.getAttribute('data-section-name');
+      if (fromSectionName && toSectionName && movedTaskId) {
         // Find the moved task
-        const movedTask = groupedTasks[fromCategory]?.flatMap((section: TaskSection) => section.tasks).find((task: TaskType) => task.task_id === movedTaskId);
+        const movedTask = groupedTasks[fromSectionName]?.find((task: TaskType) => task.task_id === movedTaskId);
         if (movedTask) {
           // Update backend according to sortKey
           const updates: Partial<import('../../api/tasks').TaskInput> = {};
           if (sortKey === 'category') {
-            updates.category_id = toCategory;
+            updates.category_id = toSectionName;
           } else if (sortKey === 'priority') {
-            updates.priority = toCategory as 'low' | 'medium' | 'high' | 'urgent';
+            updates.priority = toSectionName as 'low' | 'medium' | 'high' | 'urgent';
           }
           if (Object.keys(updates).length > 0) {
             try {
@@ -211,46 +189,40 @@ export default function TaskList({ tasksByCategory }: { tasksByCategory: TasksBy
           </Tooltip>
         </ToggleButtonGroup>
       </div>
-      {Object.entries(groupedTasks).map(([category, sections]) => (
-        <div className="task-category" key={category} data-category={category}>
-          {(sections ?? []).map((section: TaskSection, sectionIdx: number) => (
-            <div className="task-section" key={`${category}-${section.name}`} data-category={category}>
-              <div className="section-header">
-                <span>{section.name}</span>
-                <span className="badge">{section.tasks.length}</span>
-                <a href="#" className="task-section-collapse">▲</a>
-              </div>
-              <ReactSortable
-                list={section.tasks.map(task => ({ ...task, id: task.task_id }))}
-                setList={(newItems: SortableTask[]) => {
-                  // Map back to TaskType by matching id to task_id
-                  const newTasks: TaskType[] = newItems.map((item) => {
-                    // Remove the injected 'id' property to avoid polluting TaskType
-                    const { id, ...rest } = item;
-                    return { ...rest, task_id: item.task_id ?? id };
-                  });
-                  handleTaskMove(category, section.name, newTasks, sectionIdx);
-                }}
-                group={{
-                  name: 'tasks',
-                  pull: sortKey === 'deadline' ? false : 'clone',
-                  put: sortKey === 'deadline' ? false : true
-                }}
-                sort={sortKey !== 'deadline'}
-                animation={150}
-                ghostClass="sortable-ghost"
-                chosenClass="sortable-chosen"
-                dragClass="sortable-drag"
-                onAdd={sortKey !== 'deadline' ? handleSortableEvent : undefined}
-                onRemove={sortKey !== 'deadline' ? handleSortableEvent : undefined}
-                disabled={sortKey === 'deadline'}
-              >
-                {section.tasks.map((task: TaskType) => (
-                  <TaskItem key={task.task_id} task={task} />
-                ))}
-              </ReactSortable>
-            </div>
-          ))}
+      {Object.entries(groupedTasks).map(([sectionName, tasks]) => (
+        <div className="task-section" key={sectionName} data-section-name={sectionName}>
+          <div className="section-header">
+            <span>{sectionName}</span>
+            <span className="badge">{tasks.length}</span>
+            <a href="#" className="task-section-collapse">▲</a>
+          </div>
+          <ReactSortable
+            list={tasks.map(task => ({ ...task, id: task.task_id }))}
+            setList={(newItems: SortableTask[]) => {
+              const newTasks: TaskType[] = newItems.map((item) => {
+                const { id, ...rest } = item;
+                return { ...rest, task_id: item.task_id ?? id };
+              });
+              handleTaskMove(sectionName, newTasks);
+            }}
+            group={{
+              name: 'tasks',
+              pull: sortKey === 'deadline' ? false : true,
+              put: sortKey === 'deadline' ? false : true
+            }}
+            sort={sortKey !== 'deadline'}
+            animation={150}
+            ghostClass="sortable-ghost"
+            chosenClass="sortable-chosen"
+            dragClass="sortable-drag"
+            onAdd={sortKey !== 'deadline' ? handleSortableEvent : undefined}
+            onRemove={sortKey !== 'deadline' ? handleSortableEvent : undefined}
+            disabled={sortKey === 'deadline'}
+          >
+            {tasks.map((task: TaskType) => (
+              <TaskItem key={task.task_id} task={{ ...task, duration: formatDuration(task.estimated_duration_minutes) }} />
+            ))}
+          </ReactSortable>
         </div>
       ))}
     </div>

@@ -4,11 +4,11 @@ import TaskList from "../../components/tasks/TaskList";
 import { ThirdPartyDraggable } from '@fullcalendar/interaction';
 import { fetchTasks } from "../../api/tasks";
 import type { Task } from "../../api/tasks";
-import type { TasksByCategory } from "../../components/tasks/TaskList";
+import type { TasksBySortingKey } from "../../components/tasks/TaskList";
 
 export const CalendarPage = () => {
   const taskListRef = useRef<HTMLDivElement>(null);
-  const [tasksByCategory, setTasksByCategory] = useState<TasksByCategory>({});
+  const [tasksBySortingKey, setTasksBySortingKey] = useState<TasksBySortingKey>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +22,7 @@ export const CalendarPage = () => {
         const tasksResponse = await fetchTasks(); // Remove status filter temporarily
 
         // Group tasks by category
-        const groupedTasks: TasksByCategory = {};
+        const groupedTasks: TasksBySortingKey = {};
         
         // Filter out completed tasks on the client side
         const activeTasks = tasksResponse.tasks.filter((task: Task) => 
@@ -33,10 +33,7 @@ export const CalendarPage = () => {
           const categoryName = task.category?.name || 'Uncategorized';
           
           if (!groupedTasks[categoryName]) {
-            groupedTasks[categoryName] = [{
-              name: categoryName,
-              tasks: []
-            }];
+            groupedTasks[categoryName] = [];
           }
           
           // Pass the full API task object, but add a formatted duration field for display
@@ -45,10 +42,10 @@ export const CalendarPage = () => {
             duration: formatDuration(task.estimated_duration_minutes)
           };
           
-          groupedTasks[categoryName][0].tasks.push(taskItem);
+          groupedTasks[categoryName].push(taskItem);
         });
         
-        setTasksByCategory(groupedTasks);
+        setTasksBySortingKey(groupedTasks);
       } catch (err) {
         console.error('Error loading tasks:', err);
         let errorMessage = 'Failed to load tasks. Please try again.';
@@ -76,7 +73,7 @@ export const CalendarPage = () => {
 
   useEffect(() => {
     // Initialize ThirdPartyDraggable for the task list
-    if (taskListRef.current && Object.keys(tasksByCategory).length > 0) {
+    if (taskListRef.current && Object.keys(tasksBySortingKey).length > 0) {
       const draggable = new ThirdPartyDraggable(taskListRef.current, {
         itemSelector: '.task-item',
         eventData: function(eventEl) {
@@ -90,7 +87,7 @@ export const CalendarPage = () => {
 
       return () => draggable.destroy();
     }
-  }, [tasksByCategory]); // Re-initialize when tasks are loaded
+  }, [tasksBySortingKey]); // Re-initialize when tasks are loaded
 
   // Helper function to format duration from minutes to HH:MM:SS
   const formatDuration = (minutes: number): string => {
@@ -141,7 +138,7 @@ export const CalendarPage = () => {
       </div>
       <div style={{ flex: '0 0 300px' }} ref={taskListRef}>
         <h2>Tasks</h2>
-        <TaskList tasksByCategory={tasksByCategory} />
+        <TaskList tasksBySortingKey={tasksBySortingKey} />
       </div>
     </div>
   );

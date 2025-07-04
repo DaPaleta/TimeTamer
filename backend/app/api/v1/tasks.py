@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 from ...db.session import get_db
-from ...db.models import User, Task, Category, TaskComment
+from ...db.models import User, Task, Category, TaskComment, UserCalendarDay
 from ...schemas.tasks import (
     TaskCreate, TaskUpdate, TaskResponse, TaskListResponse,
     CategoryCreate, CategoryUpdate, CategoryResponse,
@@ -14,6 +14,8 @@ from ...core.auth import get_current_user
 import logging
 from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import request_validation_exception_handler
+from datetime import datetime, timedelta, timezone
+from dateutil import parser as date_parser
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -254,6 +256,109 @@ async def create_task(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Task creation failed"
         )
+
+
+def slot_overlaps(slot_start, slot_end, range_start, range_end):
+    return slot_start < range_end and slot_end > range_start
+
+def is_slot_within_availability(slot_start, slot_end, availability_slots):
+    for slot in availability_slots:
+        try:
+            avail_start = datetime.strptime(slot['start_time'], '%H:%M').time()
+            avail_end = datetime.strptime(slot['end_time'], '%H:%M').time()
+            if slot['status'] == 'available':
+                # Check if the scheduled slot is fully within this available slot
+                if (slot_start.time() >= avail_start and slot_end.time() <= avail_end):
+                    return True
+        except Exception:
+            continue
+    return False
+
+def is_slot_within_focus(slot_start, slot_end, focus_slots):
+    for slot in focus_slots:
+        try:
+            focus_start = datetime.strptime(slot['start_time'], '%H:%M').time()
+            focus_end = datetime.strptime(slot['end_time'], '%H:%M').time()
+            if slot_overlaps(slot_start, slot_end, datetime.combine(slot_start.date(), focus_start), datetime.combine(slot_start.date(), focus_end)):
+                return True
+        except Exception:
+            continue
+    return False
+
+@router.get("/scheduled", response_model=List[dict])
+async def get_scheduled_events(
+    start: str = Query(..., description="Start date YYYY-MM-DD"),
+    end: str = Query(..., description="End date YYYY-MM-DD"),
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get all scheduled events for the user in the given date range."""
+    logging.warning(f"[scheduled_events] Incoming start: {start}, end: {end}")
+    start_date = date_parser.isoparse(start).astimezone(timezone.utc)
+    end_date = date_parser.isoparse(end).astimezone(timezone.utc)
+    logging.warning(f"[scheduled_events] Parsed start_date: {start_date}, end_date: {end_date}")
+
+    # Query all tasks for the user with scheduled slots
+    tasks = db.query(Task).filter(Task.user_id == current_user.user_id).all()
+    logging.warning(f"[scheduled_events] Found {len(tasks)} tasks for user {current_user.user_id}")
+    # Query all calendar days in range for the user
+    calendar_days = db.query(UserCalendarDay).filter(
+        UserCalendarDay.user_id == current_user.user_id,
+        UserCalendarDay.date >= start,
+        UserCalendarDay.date <= end
+    ).all()
+    logging.warning(f"[scheduled_events] Found {len(calendar_days)} calendar days for user {current_user.user_id}")
+    calendar_day_map = {str(d.date): d for d in calendar_days}
+
+    scheduled_events = []
+    for task in tasks:
+        slots = task.scheduled_slots if isinstance(task.scheduled_slots, list) else []
+        for slot in slots:
+            slot_start = date_parser.isoparse(slot['start_time']).astimezone(timezone.utc) if 'start_time' in slot else None
+            slot_end = date_parser.isoparse(slot['end_time']).astimezone(timezone.utc) if 'end_time' in slot else None
+            if not slot_start or not slot_end:
+                logging.warning(f"[scheduled_events] Skipping slot with missing start/end: {slot}")
+                continue
+            # Check if slot overlaps with the requested range
+            if slot_end < start_date or slot_start > end_date:
+                continue
+            # Validation
+            validation = {'valid': True, 'reasons': []}
+            calendar_day = calendar_day_map.get(slot_start.strftime('%Y-%m-%d'))
+            if not calendar_day:
+                validation['valid'] = False
+                validation['reasons'].append('No calendar context for this day')
+            else:
+                # Check work environment
+                fitting_envs = task.fitting_environments if isinstance(task.fitting_environments, list) else []
+                if isinstance(fitting_envs, list) and len(fitting_envs) > 0:
+                    if calendar_day.work_environment not in fitting_envs:
+                        validation['valid'] = False
+                        validation['reasons'].append('Work environment mismatch')
+                # Check availability
+                if not is_slot_within_availability(slot_start, slot_end, calendar_day.availability_slots):
+                    validation['valid'] = False
+                    validation['reasons'].append('Not within available time')
+                # Check focus if required
+                if getattr(task, 'requires_focus', False):
+                    if not is_slot_within_focus(slot_start, slot_end, calendar_day.focus_slots):
+                        validation['valid'] = False
+                        validation['reasons'].append('Not within focus time')
+            scheduled_events.append({
+                'id': f"{task.task_id}-{slot['start_time']}",
+                'task_id': str(task.task_id),
+                'title': task.title,
+                'start': slot['start_time'],
+                'end': slot['end_time'],
+                'category': task.category.name if task.category else None,
+                'category_color': task.category.color_hex if task.category else None,
+                'status': task.status,
+                'estimated_duration_minutes': task.estimated_duration_minutes,
+                'scheduled_slot': slot,
+                'validation': validation
+            })
+    logging.warning(f"[scheduled_events] Returning {len(scheduled_events)} events")
+    return scheduled_events
 
 
 @router.get("/{task_id}", response_model=TaskResponse)

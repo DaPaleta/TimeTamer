@@ -1,100 +1,82 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef } from "react";
 import { MyCalendar } from "./Calendar";
-import TaskList from "../../components/tasks/TaskList";
-import { ThirdPartyDraggable } from '@fullcalendar/interaction';
-import { fetchTasks } from "../../api/tasks";
-import type { Task } from "../../api/tasks";
-import type { TasksBySortingKey } from "../../components/tasks/TaskList";
+import { CalendarProvider, useCalendarContext } from '../../context/CalendarContext';
+import { fetchTasks } from '../../api/tasks';
+import type { Task } from '../../api/tasks';
+import TaskList from '../../components/tasks/TaskList';
+import { ThirdPartyDraggable } from "@fullcalendar/interaction/index.js";
 
-export const CalendarPage = () => {
+const CalendarPage = () => {
   const taskListRef = useRef<HTMLDivElement>(null);
-  const [tasksBySortingKey, setTasksBySortingKey] = useState<TasksBySortingKey>({});
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const { loading, error, dateRange, fetchAndStoreCalendarData, scheduledEvents } = useCalendarContext();
+  const [unscheduledTasks, setUnscheduledTasks] = React.useState<Task[]>([]);
+  const [unscheduledLoading, setUnscheduledLoading] = React.useState(false);
+  const [unscheduledError, setUnscheduledError] = React.useState<string | null>(null);
 
-  useEffect(() => {
-    const loadTasks = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        
-        // Fetch tasks from the server
-        const tasksResponse = await fetchTasks(); // Remove status filter temporarily
+  // Ref to store the draggable instance for cleanup
+  const draggableRef = React.useRef<ThirdPartyDraggable | null>(null);
 
-        // Group tasks by category
-        const groupedTasks: TasksBySortingKey = {};
-        
-        // Filter out completed tasks on the client side
-        const activeTasks = tasksResponse.tasks.filter((task: Task) => 
-          task.status !== 'completed' && task.status !== 'cancelled'
-        );
-        
-        activeTasks.forEach((task: Task) => {
-          const categoryName = task.category?.name || 'Uncategorized';
-          
-          if (!groupedTasks[categoryName]) {
-            groupedTasks[categoryName] = [];
-          }
-          
-          // Pass the full API task object, but add a formatted duration field for display
-          const taskItem = {
-            ...task,
-            duration: formatDuration(task.estimated_duration_minutes)
-          };
-          
-          groupedTasks[categoryName].push(taskItem);
-        });
-        
-        setTasksBySortingKey(groupedTasks);
-      } catch (err) {
-        console.error('Error loading tasks:', err);
-        let errorMessage = 'Failed to load tasks. Please try again.';
-        
-        if (err instanceof Error) {
-          if (err.message.includes('Network Error')) {
-            errorMessage = 'Unable to connect to server. Please check your connection.';
-          } else if (err.message.includes('401')) {
-            errorMessage = 'Authentication required. Please log in again.';
-          } else if (err.message.includes('403')) {
-            errorMessage = 'Access denied. You may not have permission to view tasks.';
-          } else if (err.message.includes('500')) {
-            errorMessage = 'Server error. Please try again later.';
-          }
-        }
-        
-        setError(errorMessage);
-      } finally {
-        setLoading(false);
+  // Fetch calendar data when dateRange changes
+  React.useEffect(() => {
+    if (dateRange.start && dateRange.end) {
+      fetchAndStoreCalendarData(dateRange);
+    }
+  }, [dateRange.start, dateRange.end, fetchAndStoreCalendarData]);
+
+  // Fetch unscheduled tasks on mount and when scheduledEvents change
+  React.useEffect(() => {
+    setUnscheduledLoading(true);
+    setUnscheduledError(null);
+    fetchTasks()
+      .then(res => {
+        // Filter tasks with no scheduled_slots or empty scheduled_slots array
+        const unscheduled = res.tasks.filter(task => !task.scheduled_slots || task.scheduled_slots.length === 0);
+        setUnscheduledTasks(unscheduled);
+      })
+      .catch(() => {
+        setUnscheduledError('Failed to load unscheduled tasks.');
+      })
+      .finally(() => setUnscheduledLoading(false));
+  }, [scheduledEvents]);
+
+  // Initialize ThirdPartyDraggable for the task list after unscheduled tasks are loaded
+  React.useEffect(() => {
+    if (taskListRef.current && unscheduledTasks.length > 0) {
+      // Destroy previous instance if exists
+      if (draggableRef.current) {
+        draggableRef.current.destroy();
       }
-    };
-
-    loadTasks();
-  }, []);
-
-  useEffect(() => {
-    // Initialize ThirdPartyDraggable for the task list
-    if (taskListRef.current && Object.keys(tasksBySortingKey).length > 0) {
-      const draggable = new ThirdPartyDraggable(taskListRef.current, {
-        itemSelector: '.task-item',
+      // See: https://fullcalendar.io/docs/third-party-dragging-libraries
+      draggableRef.current = new ThirdPartyDraggable(taskListRef.current, {
+        itemSelector: ".task-item",
         eventData: function(eventEl) {
           return {
-            title: eventEl.getAttribute('data-title'),
-            duration: eventEl.getAttribute('data-duration'),
-            taskId: eventEl.getAttribute('data-task-id'),
+            title: eventEl.getAttribute("data-title"),
+            duration: eventEl.getAttribute("data-duration"),
+            taskId: eventEl.getAttribute("data-task-id"),
           };
-        }
+        },
       });
-
-      return () => draggable.destroy();
     }
-  }, [tasksBySortingKey]); // Re-initialize when tasks are loaded
+    // Cleanup on unmount
+    return () => {
+      if (draggableRef.current) {
+        draggableRef.current.destroy();
+        draggableRef.current = null;
+      }
+    };
+  }, [unscheduledTasks]);
 
-  // Helper function to format duration from minutes to HH:MM:SS
-  const formatDuration = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return `${hours.toString().padStart(2, '0')}:${mins.toString().padStart(2, '0')}:00`;
-  };
+  // Group unscheduled tasks by category for TaskList
+  const unscheduledTasksBySortingKey = React.useMemo(() => {
+    const grouped: { [sectionName: string]: Task[] } = {};
+    unscheduledTasks.forEach(task => {
+      const displayName = (task.category && task.category.name) || 'Uncategorized';
+      if (!grouped[displayName]) grouped[displayName] = [];
+      grouped[displayName].push(task);
+    });
+    return grouped;
+  }, [unscheduledTasks]);
 
   if (loading) {
     return (
@@ -106,7 +88,7 @@ export const CalendarPage = () => {
         <div style={{ flex: '0 0 300px' }}>
           <h2>Tasks</h2>
           <div style={{ padding: '20px', textAlign: 'center' }}>
-            Loading tasks...
+            Loading calendar data...
           </div>
         </div>
       </div>
@@ -137,9 +119,28 @@ export const CalendarPage = () => {
         <MyCalendar />
       </div>
       <div style={{ flex: '0 0 300px' }} ref={taskListRef}>
-        <h2>Tasks</h2>
-        <TaskList tasksBySortingKey={tasksBySortingKey} />
+        <h2>Unscheduled Tasks</h2>
+        <div style={{ padding: '20px', textAlign: 'center' }}>
+          {unscheduledLoading ? (
+            <div>Loading unscheduled tasks...</div>
+          ) : unscheduledError ? (
+            <div style={{ color: 'red' }}>{unscheduledError}</div>
+          ) : unscheduledTasks.length === 0 ? (
+            <div>No unscheduled tasks.</div>
+          ) : (
+            <TaskList tasksBySortingKey={unscheduledTasksBySortingKey} />
+          )}
+        </div>
       </div>
     </div>
   );
 };
+
+// Wrap the page in the provider
+const CalendarPageWithProvider = () => (
+  <CalendarProvider>
+    <CalendarPage />
+  </CalendarProvider>
+);
+
+export default CalendarPageWithProvider;

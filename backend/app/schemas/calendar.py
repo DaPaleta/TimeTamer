@@ -10,8 +10,9 @@ class FocusSlot(BaseModel):
     focus_level: str = Field(..., pattern="^(high|medium|low)$", description="Focus level")
 
     @field_validator('end_time')
-    def validate_time_range(cls, v, values):
-        if 'start_time' in values and v <= values['start_time']:
+    def validate_time_range(cls, v, info):
+        start_time = info.data.get('start_time')
+        if start_time and v <= start_time:
             raise ValueError('End time must be after start time')
         return v
 
@@ -22,8 +23,9 @@ class AvailabilitySlot(BaseModel):
     status: str = Field(..., pattern="^(available|busy|tentative)$", description="Availability status")
 
     @field_validator('end_time')
-    def validate_time_range(cls, v, values):
-        if 'start_time' in values and v <= values['start_time']:
+    def validate_time_range(cls, v, info):
+        start_time = info.data.get('start_time')
+        if start_time and v <= start_time:
             raise ValueError('End time must be after start time')
         return v
 

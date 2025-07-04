@@ -48,6 +48,7 @@ export interface TaskInput {
   is_endless?: boolean;
   is_recurring?: boolean;
   recurring_pattern?: RecurringPattern;
+  scheduled_slots?: { start_time: string; end_time: string; calendar_day_id: string | null }[];
 }
 
 export interface Task {
@@ -95,6 +96,16 @@ export interface FetchTasksParams {
   search?: string;
 }
 
+export type ScheduledEvent = {
+  id: string;
+  title: string;
+  start: string;
+  end: string;
+  category?: string;
+  task_id?: string;
+  // ...other fields as needed
+};
+
 export async function createTask(task: TaskInput) {
   const response = await api.post("/tasks", task);
   return response.data;
@@ -126,6 +137,14 @@ export async function updateTask(task_id: string, updates: Partial<TaskInput>): 
 
 export async function deleteTask(task_id: string): Promise<void> {
   await api.delete(`/tasks/${task_id}`);
+}
+
+export async function fetchScheduledEvents(start: string, end: string): Promise<ScheduledEvent[]> {
+  // Always send only YYYY-MM-DD to the backend
+  const startDate = start.slice(0, 10);
+  const endDate = end.slice(0, 10);
+  const response = await api.get('/tasks/scheduled', { params: { start: startDate, end: endDate } });
+  return response.data;
 }
 
 export default api; 

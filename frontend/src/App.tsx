@@ -6,7 +6,7 @@ import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
 import { theme } from './styles/theme';
 import { MainLayout } from './components/layout/MainLayout';
 import { TaskListPage } from './pages/tasks/TaskListPage';
-import { CalendarPage } from './pages/calendar/CalendarPage';
+import CalendarPage from './pages/calendar/CalendarPage';
 import CategoryManagerPage from './pages/settings/CategoryManagerPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import Login from './pages/auth/Login';

@@ -3,7 +3,7 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from ...db.session import get_db
-from ...db.models import User, UserCalendarDay
+from ...db.models import User, UserCalendarDay, WorkEnvironmentEnum
 from ...schemas.calendar import (
     CalendarDayCreate, CalendarDayUpdate, CalendarDayResponse,
     CalendarDayBulkUpdate, CalendarDayListResponse
@@ -42,7 +42,7 @@ async def get_calendar_days(
     total = len(days)
     
     return CalendarDayListResponse(
-        days=days,
+        days=[CalendarDayResponse.model_validate(day) for day in days],
         total=total,
         start_date=start_date,
         end_date=end_date
@@ -149,12 +149,19 @@ async def create_calendar_day(
             detail="Calendar day already exists for this date"
         )
     
+    focus_slots = [slot.model_dump() if hasattr(slot, 'model_dump') else dict(slot) for slot in calendar_data.focus_slots]
+    availability_slots = [slot.model_dump() if hasattr(slot, 'model_dump') else dict(slot) for slot in calendar_data.availability_slots]
+    
+    # Ensure work_environment is an Enum
+    work_env = calendar_data.work_environment
+    if not isinstance(work_env, WorkEnvironmentEnum):
+        work_env = WorkEnvironmentEnum(work_env)
     db_calendar_day = UserCalendarDay(
         user_id=current_user.user_id,
         date=calendar_data.date,
-        work_environment=calendar_data.work_environment,
-        focus_slots=calendar_data.focus_slots,
-        availability_slots=calendar_data.availability_slots
+        work_environment=work_env,
+        focus_slots=focus_slots,
+        availability_slots=availability_slots
     )
     
     try:
@@ -198,12 +205,19 @@ async def bulk_update_calendar_days(
             updated_days.append(existing_day)
         else:
             # Create new day
+            focus_slots = [slot.model_dump() if hasattr(slot, 'model_dump') else dict(slot) for slot in day_data.focus_slots]
+            availability_slots = [slot.model_dump() if hasattr(slot, 'model_dump') else dict(slot) for slot in day_data.availability_slots]
+            
+            # Ensure work_environment is an Enum
+            work_env = day_data.work_environment
+            if not isinstance(work_env, WorkEnvironmentEnum):
+                work_env = WorkEnvironmentEnum(work_env)
             db_calendar_day = UserCalendarDay(
                 user_id=current_user.user_id,
                 date=day_data.date,
-                work_environment=day_data.work_environment,
-                focus_slots=day_data.focus_slots,
-                availability_slots=day_data.availability_slots
+                work_environment=work_env,
+                focus_slots=focus_slots,
+                availability_slots=availability_slots
             )
             db.add(db_calendar_day)
             updated_days.append(db_calendar_day)
@@ -213,7 +227,8 @@ async def bulk_update_calendar_days(
         # Refresh all updated days
         for day in updated_days:
             db.refresh(day)
-        return updated_days
+        # Return as CalendarDayResponse models
+        return [CalendarDayResponse.model_validate(day) for day in updated_days]
     except IntegrityError:
         db.rollback()
         raise HTTPException(

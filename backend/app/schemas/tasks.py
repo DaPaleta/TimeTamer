@@ -92,6 +92,7 @@ class TaskUpdate(BaseModel):
     
     # Recurring Pattern
     recurring_pattern: Optional[dict] = None
+    scheduled_slots: Optional[List[dict]] = None
 
     @field_validator('priority')
     def uppercase_priority(cls, v):

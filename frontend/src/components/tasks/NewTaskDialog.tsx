@@ -182,6 +182,7 @@ export default function NewTaskDialog({
               }
             : undefined,
       };
+      console.log('Submitting payload:', payload);
       let result;
       if (task && task.task_id) {
         result = await updateTask(task.task_id, payload);
@@ -207,8 +208,10 @@ export default function NewTaskDialog({
         "message" in err.response.data.error
       ) {
         setError((err.response.data.error as { message: string }).message);
+        console.error('Backend error response:', err.response.data);
       } else {
         setError(task ? "Failed to update task." : "Failed to create task.");
+        console.error('Unknown error:', err);
       }
     } finally {
       setSubmitting(false);

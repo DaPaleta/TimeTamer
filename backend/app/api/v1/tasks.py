@@ -1,6 +1,6 @@
 import uuid
 from typing import List, Optional
-from fastapi import APIRouter, Depends, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query, Request
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.exc import IntegrityError
 from ...db.session import get_db
@@ -11,6 +11,9 @@ from ...schemas.tasks import (
     TaskCommentCreate, TaskCommentUpdate, TaskCommentResponse
 )
 from ...core.auth import get_current_user
+import logging
+from fastapi.exceptions import RequestValidationError
+from fastapi.exception_handlers import request_validation_exception_handler
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -193,11 +196,24 @@ async def get_tasks(
 
 @router.post("", response_model=TaskResponse, status_code=status.HTTP_201_CREATED)
 async def create_task(
+    request: Request,
     task_data: TaskCreate,
     current_user: User = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
     """Create a new task."""
+    try:
+        raw_body = await request.body()
+        logging.warning(f"[create_task] Raw request body: {raw_body}")
+        try:
+            json_body = await request.json()
+            logging.warning(f"[create_task] Parsed JSON body: {json_body}")
+        except Exception as e:
+            logging.warning(f"[create_task] Could not parse JSON body: {e}")
+        logging.warning(f"[create_task] Parsed task_data: {task_data}")
+        logging.warning(f"[create_task] task_data.deadline type: {type(task_data.deadline)}, value: {task_data.deadline}")
+    except Exception as e:
+        logging.warning(f"[create_task] Could not log request body: {e}")
     # Validate category belongs to user
     if task_data.category_id:
         category = db.query(Category).filter(
@@ -415,4 +431,17 @@ async def create_task_comment(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Comment creation failed"
-        ) 
+        )
+
+# Add a global exception handler for 422 errors if not present
+app = None
+try:
+    from ...main import app
+except ImportError:
+    pass
+if app is not None:
+    @app.exception_handler(RequestValidationError)
+    async def validation_exception_handler(request: Request, exc: RequestValidationError):
+        raw_body = await request.body()
+        logging.error(f"[422] Validation error: {exc.errors()} for raw body: {raw_body}")
+        return await request_validation_exception_handler(request, exc) 

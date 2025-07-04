@@ -16,6 +16,11 @@ export interface ScheduledEvent {
   start: string;
   end: string;
   category?: string;
+  task_id?: string;
+  validation?: {
+    valid: boolean;
+    reasons: string[];
+  };
   // ...other fields as needed
 }
 export interface CalendarDayContext {
@@ -43,6 +48,9 @@ interface CalendarContextType {
 
 const CalendarContext = createContext<CalendarContextType | undefined>(undefined);
 
+// Simple in-memory cache for recently viewed date ranges
+const calendarDataCache = new Map<string, { events: ScheduledEvent[]; context: CalendarDayContext[] }>();
+
 export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [view, setView] = useState<CalendarView>('timeGridWeek');
   const [dateRange, setDateRange] = useState<DateRange>({ start: '', end: '' });
@@ -55,6 +63,14 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     console.log('[CalendarContext] fetchAndStoreCalendarData called with', range);
     setLoading(true);
     setError(null);
+    const cacheKey = `${range.start}_${range.end}`;
+    if (calendarDataCache.has(cacheKey)) {
+      const cached = calendarDataCache.get(cacheKey)!;
+      setScheduledEvents(cached.events);
+      setCalendarContext(cached.context);
+      setLoading(false);
+      return;
+    }
     try {
       const [events, context] = await Promise.all([
         fetchScheduledEvents(range.start, range.end),
@@ -63,6 +79,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       console.log('[CalendarContext] setScheduledEvents', events);
       setScheduledEvents(events);
       setCalendarContext(context);
+      calendarDataCache.set(cacheKey, { events, context });
     } catch (err) {
       let message = 'Failed to load calendar data.';
       if (err instanceof Error) message += ` ${err.message}`;

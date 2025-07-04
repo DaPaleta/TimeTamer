@@ -78,6 +78,15 @@ const CalendarPage = () => {
     return grouped;
   }, [unscheduledTasks]);
 
+  // Error toast state
+  const [showError, setShowError] = React.useState(true);
+
+  // Show spinner overlay if either calendar or unscheduled tasks are loading
+  const showSpinner = loading || unscheduledLoading;
+
+  // Show error toast for either calendar or unscheduled task errors
+  const errorMessage = error || unscheduledError || '';
+
   if (loading) {
     return (
       <div style={{ display: 'flex', gap: '20px' }}>
@@ -113,26 +122,26 @@ const CalendarPage = () => {
   }
 
   return (
-    <div style={{ display: 'flex', gap: '20px' }}>
-      <div style={{ flex: '1' }}>
-        <h2>Calendar</h2>
-        <MyCalendar />
-      </div>
-      <div style={{ flex: '0 0 300px' }} ref={taskListRef}>
-        <h2>Unscheduled Tasks</h2>
-        <div style={{ padding: '20px', textAlign: 'center' }}>
-          {unscheduledLoading ? (
-            <div>Loading unscheduled tasks...</div>
-          ) : unscheduledError ? (
-            <div style={{ color: 'red' }}>{unscheduledError}</div>
-          ) : unscheduledTasks.length === 0 ? (
-            <div>No unscheduled tasks.</div>
-          ) : (
-            <TaskList tasksBySortingKey={unscheduledTasksBySortingKey} />
-          )}
+    <>
+      <SpinnerOverlay show={showSpinner} />
+      <ErrorToast message={errorMessage && showError ? errorMessage : ''} onClose={() => setShowError(false)} />
+      <div style={{ display: 'flex', gap: '20px' }}>
+        <div style={{ flex: '1' }}>
+          <h2>Calendar</h2>
+          <MyCalendar />
+        </div>
+        <div style={{ flex: '0 0 300px' }} ref={taskListRef}>
+          <h2>Unscheduled Tasks</h2>
+          <div style={{ padding: '20px', textAlign: 'center' }}>
+            {unscheduledTasks.length === 0 && !unscheduledLoading ? (
+              <div>No unscheduled tasks.</div>
+            ) : (
+              <TaskList tasksBySortingKey={unscheduledTasksBySortingKey} />
+            )}
+          </div>
         </div>
       </div>
-    </div>
+    </>
   );
 };
 
@@ -142,5 +151,24 @@ const CalendarPageWithProvider = () => (
     <CalendarPage />
   </CalendarProvider>
 );
+
+// Simple loading spinner overlay
+const SpinnerOverlay = ({ show }: { show: boolean }) => show ? (
+  <div style={{
+    position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+    background: 'rgba(255,255,255,0.5)', zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center'
+  }}>
+    <div style={{ border: '4px solid #f3f3f3', borderRadius: '50%', borderTop: '4px solid #3498db', width: 40, height: 40, animation: 'spin 1s linear infinite' }} />
+    <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+  </div>
+) : null;
+
+// Simple error toast
+const ErrorToast = ({ message, onClose }: { message: string, onClose: () => void }) => message ? (
+  <div style={{ position: 'fixed', bottom: 30, right: 30, background: '#e74c3c', color: 'white', padding: '16px 24px', borderRadius: 8, zIndex: 10000, boxShadow: '0 2px 8px rgba(0,0,0,0.15)' }}>
+    <span>{message}</span>
+    <button onClick={onClose} style={{ marginLeft: 16, background: 'none', border: 'none', color: 'white', fontWeight: 'bold', cursor: 'pointer' }}>×</button>
+  </div>
+) : null;
 
 export default CalendarPageWithProvider;

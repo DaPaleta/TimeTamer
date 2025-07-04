@@ -1,5 +1,9 @@
 import sys
 import os
+from dotenv import load_dotenv
+
+# Load environment variables from .env file
+load_dotenv()
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import pytest
@@ -10,9 +14,13 @@ from sqlalchemy.orm import sessionmaker
 from app.db.models import Base
 from app.db.session import get_db
 
-# Use file-based SQLite for tests to persist tables across connections
-test_db_url = "sqlite:///./test.db"
-engine = create_engine(test_db_url, connect_args={"check_same_thread": False})
+# Use PostgreSQL for tests, configurable via env var
+# Example: postgresql+psycopg2://postgres:postgres@localhost:5432/planner_test
+test_db_url = os.environ.get(
+    "TEST_DATABASE_URL",
+    "postgresql+psycopg2://postgres:postgres@localhost:5432/planner_test"
+)
+engine = create_engine(test_db_url, connect_args={})
 TestingSessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 # Override the get_db dependency

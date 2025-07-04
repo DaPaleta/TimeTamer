@@ -59,7 +59,8 @@ class TaskBase(BaseModel):
         valid_envs = ["home", "office", "outdoors", "hybrid"]
         v_upper = []
         for env in v:
-            if env not in valid_envs:
+            env_lower = env.lower()
+            if env_lower not in valid_envs:
                 raise ValueError(f"Invalid environment: {env}. Must be one of {valid_envs}")
             v_upper.append(env.upper())
         return v_upper

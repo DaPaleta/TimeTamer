@@ -43,6 +43,7 @@ def test_task_crud(client, test_user):
         "title": "Test Task",
         "description": "Test Desc",
         "category_id": category_id,
+        "fitting_environments": ['office'],
         "priority": "medium",
         "estimated_duration_minutes": 30
     }

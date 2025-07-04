@@ -110,15 +110,22 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
       const movedTaskId = evt.item.getAttribute('data-task-id');
       const fromSectionName = evt.from.closest('.task-section')?.getAttribute('data-section-name');
       const toSectionName = evt.to.closest('.task-section')?.getAttribute('data-section-name');
-      console.debug('fromSectionName', fromSectionName, 'toSectionName', toSectionName, 'movedTaskId', movedTaskId);
       if (fromSectionName && toSectionName && movedTaskId) {
         // Find the moved task
         const movedTask = groupedTasks[fromSectionName]?.find((task: TaskType) => task.task_id === movedTaskId);
         if (movedTask) {
           // Update backend according to sortKey
           const updates: Partial<import('../../api/tasks').TaskInput> = {};
+          let newCategoryObj: TaskType['category'] | undefined = undefined;
           if (sortKey === 'category') {
-            updates.category_id = toSectionName;
+            const targetTask = groupedTasks[toSectionName]?.[0];
+            if (targetTask && targetTask.category && targetTask.category.category_id) {
+              updates.category_id = targetTask.category.category_id;
+              newCategoryObj = targetTask.category;
+            } else {
+              updates.category_id = undefined; // Uncategorized
+              newCategoryObj = undefined;
+            }
           } else if (sortKey === 'priority') {
             updates.priority = toSectionName.toLowerCase() as 'low' | 'medium' | 'high' | 'urgent';
           } else if (sortKey === 'status') {
@@ -136,8 +143,12 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
           setBaseTasks((prevBaseTasks) => {
             // Remove the moved task from its old place
             const filtered = prevBaseTasks.filter(t => t.task_id !== movedTaskId);
-            // Place it at the end of the new section
-            return [...filtered, { ...movedTask, ...updates }];
+            // Place it at the end of the new section, with updated category/category_id
+            let updatedTask = { ...movedTask, ...updates };
+            if (sortKey === 'category') {
+              updatedTask = { ...updatedTask, category: newCategoryObj };
+            }
+            return [...filtered, updatedTask];
           });
         }
       }
@@ -154,6 +165,15 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
   React.useEffect(() => {
     console.log('Fetched tasks from backend:', initialTasks);
   }, [initialTasks]);
+
+  // Memoize the tasks array for each section to prevent unnecessary setList calls
+  const memoizedTasksBySection = React.useMemo(() => {
+    const result: { [sectionName: string]: SortableTask[] } = {};
+    Object.entries(groupedTasks).forEach(([sectionName, tasks]) => {
+      result[sectionName] = tasks.map(task => ({ ...task, id: task.task_id }));
+    });
+    return result;
+  }, [groupedTasks]);
 
   return (
     <div className="task-list-container" id="task-list">
@@ -201,8 +221,14 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
             <a href="#" className="task-section-collapse">▲</a>
           </div>
           <ReactSortable
-            list={tasks.map(task => ({ ...task, id: task.task_id }))}
+            list={memoizedTasksBySection[sectionName]}
             setList={(newItems: SortableTask[]) => {
+              // Only update if the list actually changed
+              const prevList = memoizedTasksBySection[sectionName];
+              const isSame = prevList.length === newItems.length && prevList.every((item, i) => item.task_id === newItems[i].task_id);
+              if (isSame) {
+                return;
+              }
               const newTasks: TaskType[] = newItems.map((item) => {
                 const { id, ...rest } = item;
                 return { ...rest, task_id: item.task_id ?? id };

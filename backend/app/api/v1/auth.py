@@ -5,7 +5,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from ...db.session import get_db
 from ...db.models import User
-from ...schemas.auth import UserRegister, UserLogin, Token, UserResponse, UserUpdate
+from ...schemas.auth import UserRegister, UserLogin, Token, UserResponse, UserUpdate, RefreshTokenRequest
 from ...core.auth import (
     get_password_hash, 
     authenticate_user, 
@@ -98,13 +98,13 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = 
 
 
 @router.post("/refresh", response_model=Token)
-async def refresh_token(refresh_token: str, db: Session = Depends(get_db)):
+async def refresh_token(request: RefreshTokenRequest, db: Session = Depends(get_db)):
     """
     Refresh access token using refresh token.
     """
     try:
-        from ...core.auth import verify_token
-        token_data = verify_token(refresh_token)
+        from ...core.auth import verify_refresh_token
+        token_data = verify_refresh_token(request.refresh_token)
         
         # Get user
         user = db.query(User).filter(User.user_id == token_data.user_id).first()

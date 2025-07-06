@@ -22,6 +22,10 @@ class Token(BaseModel):
     refresh_token: str
 
 
+class RefreshTokenRequest(BaseModel):
+    refresh_token: str = Field(..., description="The refresh token to use for getting a new access token")
+
+
 class TokenData(BaseModel):
     username: Optional[str] = None
     user_id: Optional[uuid.UUID] = None

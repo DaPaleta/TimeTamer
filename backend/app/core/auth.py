@@ -74,13 +74,75 @@ def verify_token(token: str) -> TokenData:
         )
 
 
+def verify_refresh_token(token: str) -> TokenData:
+    """Verify and decode a refresh JWT token."""
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        username: Optional[str] = payload.get("sub")
+        user_id: Optional[str] = payload.get("user_id")
+        token_type: Optional[str] = payload.get("type")
+        
+        if username is None or user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate refresh token",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        if token_type != "refresh":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        return TokenData(username=username, user_id=UUID(user_id) if user_id else None)
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate refresh token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
+def verify_access_token(token: str) -> TokenData:
+    """Verify and decode an access JWT token."""
+    try:
+        payload = jwt.decode(token, settings.secret_key, algorithms=[settings.algorithm])
+        username: Optional[str] = payload.get("sub")
+        user_id: Optional[str] = payload.get("user_id")
+        token_type: Optional[str] = payload.get("type")
+        
+        if username is None or user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Could not validate credentials",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        if token_type != "access":
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token type",
+                headers={"WWW-Authenticate": "Bearer"},
+            )
+        
+        return TokenData(username=username, user_id=UUID(user_id) if user_id else None)
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Could not validate credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(security),
     db: Session = Depends(get_db)
 ) -> User:
     """Get the current authenticated user."""
     token = credentials.credentials
-    token_data = verify_token(token)
+    token_data = verify_access_token(token)
     
     user = db.query(User).filter(User.user_id == token_data.user_id).first()
     if user is None:

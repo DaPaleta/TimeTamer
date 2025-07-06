@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, validator, field_validator
-from typing import Optional, List
+from typing import Optional, List, ForwardRef
 from datetime import datetime
 import uuid
 
@@ -117,6 +117,7 @@ class TaskResponse(TaskBase):
     created_at: datetime
     updated_at: datetime
     category: Optional[CategoryResponse] = None
+    comments: Optional[List["TaskCommentResponse"]] = []
 
     model_config = {"from_attributes": True}
 
@@ -125,15 +126,6 @@ class TaskResponse(TaskBase):
         if v:
             return v.upper()
         return v
-
-
-class TaskListResponse(BaseModel):
-    tasks: List[TaskResponse]
-    total: int
-    page: int
-    limit: int
-    has_next: bool
-    has_prev: bool
 
 
 class TaskCommentBase(BaseModel):
@@ -156,6 +148,15 @@ class TaskCommentResponse(TaskCommentBase):
     updated_at: datetime
 
     model_config = {"from_attributes": True}
+
+
+class TaskListResponse(BaseModel):
+    tasks: List[TaskResponse]
+    total: int
+    page: int
+    limit: int
+    has_prev: bool
+    has_next: bool
 
 
 class TaskScheduleRequest(BaseModel):

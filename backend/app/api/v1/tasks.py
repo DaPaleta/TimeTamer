@@ -372,8 +372,13 @@ async def get_task(
         Task.task_id == task_id,
         Task.user_id == current_user.user_id
     ).options(
-        joinedload(Task.category)
+        joinedload(Task.category),
+        joinedload(Task.comments)
     ).first()
+    
+    # Sort comments by creation time if they exist
+    if task and task.comments:
+        task.comments.sort(key=lambda c: c.created_at)
     
     if not task:
         raise HTTPException(
@@ -495,7 +500,7 @@ async def get_task_comments(
     
     comments = db.query(TaskComment).filter(
         TaskComment.task_id == task_id
-    ).order_by(TaskComment.created_at.desc()).all()
+    ).order_by(TaskComment.created_at.asc()).all()
     
     return comments
 
@@ -536,6 +541,97 @@ async def create_task_comment(
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,
             detail="Comment creation failed"
+        )
+
+
+@router.put("/{task_id}/comments/{comment_id}", response_model=TaskCommentResponse)
+async def update_task_comment(
+    task_id: uuid.UUID,
+    comment_id: uuid.UUID,
+    comment_data: TaskCommentUpdate,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Update a comment for a task."""
+    # Verify task belongs to user
+    task = db.query(Task).filter(
+        Task.task_id == task_id,
+        Task.user_id == current_user.user_id
+    ).first()
+    
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found"
+        )
+    
+    # Verify comment exists and belongs to the task
+    comment = db.query(TaskComment).filter(
+        TaskComment.comment_id == comment_id,
+        TaskComment.task_id == task_id
+    ).first()
+    
+    if not comment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found"
+        )
+    
+    # Update the comment content
+    setattr(comment, 'content', comment_data.content)
+    
+    try:
+        db.commit()
+        db.refresh(comment)
+        return comment
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Comment update failed"
+        )
+
+
+@router.delete("/{task_id}/comments/{comment_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_task_comment(
+    task_id: uuid.UUID,
+    comment_id: uuid.UUID,
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Delete a comment for a task."""
+    # Verify task belongs to user
+    task = db.query(Task).filter(
+        Task.task_id == task_id,
+        Task.user_id == current_user.user_id
+    ).first()
+    
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found"
+        )
+    
+    # Verify comment exists and belongs to the task
+    comment = db.query(TaskComment).filter(
+        TaskComment.comment_id == comment_id,
+        TaskComment.task_id == task_id
+    ).first()
+    
+    if not comment:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Comment not found"
+        )
+    
+    try:
+        db.delete(comment)
+        db.commit()
+    except IntegrityError:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Comment deletion failed"
         )
 
 # Add a global exception handler for 422 errors if not present

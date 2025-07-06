@@ -51,6 +51,14 @@ export interface TaskInput {
   scheduled_slots?: { start_time: string; end_time: string; calendar_day_id: string | null }[];
 }
 
+export interface TaskComment {
+  comment_id: string;
+  task_id: string;
+  content: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface Task {
   task_id: string;
   user_id: string;
@@ -74,6 +82,7 @@ export interface Task {
   recurring_pattern?: RecurringPattern;
   scheduled_slots?: { start_time: string; end_time: string; calendar_day_id: string }[];
   current_alerts?: string[];
+  comments?: TaskComment[];
   created_at: string;
   updated_at: string;
 }
@@ -130,9 +139,28 @@ export async function fetchTaskById(task_id: string): Promise<Task> {
   return response.data;
 }
 
+export async function getTask(task_id: string): Promise<Task> {
+  const response = await api.get(`/tasks/${task_id}`);
+  return response.data;
+}
+
 export async function updateTask(task_id: string, updates: Partial<TaskInput>): Promise<Task> {
   const response = await api.put(`/tasks/${task_id}`, updates);
   return response.data;
+}
+
+export async function addTaskComment(task_id: string, comment: { content: string }): Promise<TaskComment> {
+  const response = await api.post(`/tasks/${task_id}/comments`, comment);
+  return response.data;
+}
+
+export async function updateTaskComment(task_id: string, comment_id: string, comment: { content: string }): Promise<TaskComment> {
+  const response = await api.put(`/tasks/${task_id}/comments/${comment_id}`, comment);
+  return response.data;
+}
+
+export async function deleteTaskComment(task_id: string, comment_id: string): Promise<void> {
+  await api.delete(`/tasks/${task_id}/comments/${comment_id}`);
 }
 
 export async function deleteTask(task_id: string): Promise<void> {

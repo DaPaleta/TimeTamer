@@ -8,6 +8,7 @@ import type { CalendarView } from '../../context/CalendarContext';
 import { updateTask } from '../../api/tasks';
 import { useDayContextEventSource } from '../../components/calendar/DayContextEventSource';
 import DailyOverrideDialog from '../../components/calendar/DailyOverrideDialog';
+import TaskDetailsDialog from '../../components/calendar/TaskDetailsDialog';
 import { updateCalendarDay, createCalendarDay } from '../../api/calendar';
 import type { FocusSlot } from '../../api/calendar';
 import '../../styles/dayContextEvents.css';
@@ -73,6 +74,10 @@ export const MyCalendar = () => {
         slot?: FocusSlot;
         slotIndex?: number;
     } | null>(null);
+
+    // Task details dialog state
+    const [taskDetailsDialogOpen, setTaskDetailsDialogOpen] = useState(false);
+    const [selectedTaskId, setSelectedTaskId] = useState<string | null>(null);
 
     // Dialog handlers
     const handleDialogSave = async (type: 'work_environment' | 'focus_slot', data: Record<string, unknown>) => {
@@ -182,6 +187,23 @@ export const MyCalendar = () => {
         setDialogData(null);
     };
 
+    // Task details dialog handlers
+    const handleTaskDetailsClose = () => {
+        setTaskDetailsDialogOpen(false);
+        setSelectedTaskId(null);
+    };
+
+    const handleTaskUpdated = () => {
+        // Refresh calendar data when task is updated
+        fetchAndStoreCalendarData(dateRange);
+    };
+
+    const handleTaskUnscheduled = () => {
+        // Invalidate cache and refresh calendar data when task is unscheduled
+        invalidateCalendarCache();
+        fetchAndStoreCalendarData(dateRange);
+    };
+
     // Handle FullCalendar event clicks
     const handleEventClick = (clickInfo: { event: { extendedProps: Record<string, unknown> } }) => {
         const event = clickInfo.event;
@@ -190,13 +212,25 @@ export const MyCalendar = () => {
         const eventDate = extendedProps.date as string;
         const eventSource = extendedProps.source as string;
         
+        // Check if this is a day context event
         if (eventType === 'work_environment') {
             const environment = extendedProps.work_environment as string;
             console.log(`Work environment clicked: ${eventDate} - ${environment} (${eventSource})`);
             setDialogType('work_environment');
             setDialogData({ date: eventDate, environment, source: eventSource });
             setDialogOpen(true);
+            return;
         }
+        
+        // Check if this is a scheduled task event
+        const taskId = (extendedProps.taskId as string) || (extendedProps.task_id as string);
+        if (taskId) {
+            console.log(`Scheduled task clicked: ${taskId}`);
+            setSelectedTaskId(taskId);
+            setTaskDetailsDialogOpen(true);
+            return;
+        }
+        
         // Focus slots are handled via right-click in eventContent
     };
 
@@ -409,6 +443,14 @@ export const MyCalendar = () => {
                 onSave={handleDialogSave}
                 onDelete={handleDialogDelete}
                 onClose={handleDialogClose}
+            />
+            
+            <TaskDetailsDialog
+                isOpen={taskDetailsDialogOpen}
+                taskId={selectedTaskId}
+                onClose={handleTaskDetailsClose}
+                onTaskUpdated={handleTaskUpdated}
+                onTaskUnscheduled={handleTaskUnscheduled}
             />
         </>
     )

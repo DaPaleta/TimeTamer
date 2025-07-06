@@ -1,0 +1,94 @@
+/* Work Environment Events (All Day) */
+.work-env-home {
+  background-color: #e3f2fd !important;
+  border-color: #2196f3 !important;
+  color: #1565c0 !important;
+}
+
+.work-env-office {
+  background-color: #f3e5f5 !important;
+  border-color: #9c27b0 !important;
+  color: #7b1fa2 !important;
+}
+
+.work-env-outdoors {
+  background-color: #e8f5e8 !important;
+  border-color: #4caf50 !important;
+  color: #388e3c !important;
+}
+
+.work-env-hybrid {
+  background-color: #fff3e0 !important;
+  border-color: #ff9800 !important;
+  color: #f57c00 !important;
+}
+
+/* Focus Time Events (Background) */
+.focus-high {
+  background-color: rgba(244, 67, 54, 0.2) !important;
+  border-color: rgba(244, 67, 54, 0.4) !important;
+}
+
+.focus-medium {
+  background-color: rgba(255, 152, 0, 0.2) !important;
+  border-color: rgba(255, 152, 0, 0.4) !important;
+}
+
+.focus-low {
+  background-color: rgba(76, 175, 80, 0.2) !important;
+  border-color: rgba(76, 175, 80, 0.4) !important;
+}
+
+/* Source Indicators */
+.source-user-settings {
+  border-left: 4px solid #2196f3 !important;
+}
+
+.source-daily-override {
+  border-left: 4px solid #ff9800 !important;
+}
+
+.source-default {
+  border-left: 4px solid #9e9e9e !important;
+}
+
+/* Hover Effects */
+.work-env-home:hover,
+.work-env-office:hover,
+.work-env-outdoors:hover,
+.work-env-hybrid:hover {
+  opacity: 0.8;
+  cursor: pointer;
+}
+
+.focus-high:hover,
+.focus-medium:hover,
+.focus-low:hover {
+  opacity: 0.7;
+}
+
+/* Event Content Styling */
+.fc-event.work-env-home .fc-event-title,
+.fc-event.work-env-office .fc-event-title,
+.fc-event.work-env-outdoors .fc-event-title,
+.fc-event.work-env-hybrid .fc-event-title {
+  font-weight: 600;
+  font-size: 0.9em;
+}
+
+/* Background Event Styling */
+.fc-bg-event.focus-high,
+.fc-bg-event.focus-medium,
+.fc-bg-event.focus-low {
+  opacity: 0.6;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .fc-event.work-env-home .fc-event-title,
+  .fc-event.work-env-office .fc-event-title,
+  .fc-event.work-env-outdoors .fc-event-title,
+  .fc-event.work-env-hybrid .fc-event-title {
+    font-size: 0.8em;
+  }
+} 

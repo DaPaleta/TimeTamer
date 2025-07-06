@@ -1,11 +1,27 @@
 import api from './tasks';
 
+export interface FocusSlot {
+  start_time: string;
+  end_time: string;
+  focus_level: 'high' | 'medium' | 'low';
+}
+
+export interface AvailabilitySlot {
+  start_time: string;
+  end_time: string;
+  status: 'available' | 'busy' | 'tentative';
+}
+
 export interface CalendarDayContext {
   date: string;
-  focus: boolean;
-  available: boolean;
-  work_environment: 'home' | 'office' | 'outdoors' | 'hybrid'
-  // ...other fields as needed
+  work_environment: 'home' | 'office' | 'outdoors' | 'hybrid';
+  focus_slots: FocusSlot[];
+  availability_slots: AvailabilitySlot[];
+  calendar_day_id?: string;
+  user_id?: string;
+  created_at?: string;
+  updated_at?: string;
+  source: 'default' | 'user_settings' | 'daily_override';
 }
 
 interface CalendarDaysResponse {
@@ -99,4 +115,24 @@ export async function updateUserDaySetting(settingId: string, setting: UserDaySe
 
 export async function deleteUserDaySetting(settingId: string): Promise<void> {
   await api.delete(`/calendar/settings/${settingId}`);
+}
+
+// Calendar Day Override API functions
+export async function updateCalendarDay(date: string, update: {
+  work_environment?: string;
+  focus_slots?: FocusSlot[];
+  availability_slots?: AvailabilitySlot[];
+}): Promise<CalendarDayContext> {
+  const response = await api.put(`/calendar/days/${date}`, update);
+  return response.data;
+}
+
+export async function createCalendarDay(dayData: {
+  date: string;
+  work_environment: string;
+  focus_slots: FocusSlot[];
+  availability_slots: AvailabilitySlot[];
+}): Promise<CalendarDayContext> {
+  const response = await api.post('/calendar/days', dayData);
+  return response.data;
 } 

@@ -1,4 +1,4 @@
-import React, { useRef } from 'react';
+import React, { useRef, useState } from 'react';
 import FullCalendar from '@fullcalendar/react';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
@@ -6,7 +6,12 @@ import { useCalendarContext } from '../../context/CalendarContext';
 import type { ViewContentArg, DatesSetArg, EventDropArg, EventApi, EventContentArg, EventInput } from '@fullcalendar/core';
 import type { CalendarView } from '../../context/CalendarContext';
 import { updateTask } from '../../api/tasks';
-import { backgroundEvents as staticBackgroundEvents } from './backgroundEvents';
+import { useDayContextEventSource } from '../../components/calendar/DayContextEventSource';
+import DailyOverrideDialog from '../../components/calendar/DailyOverrideDialog';
+import { updateCalendarDay, createCalendarDay } from '../../api/calendar';
+import type { FocusSlot } from '../../api/calendar';
+import '../../styles/dayContextEvents.css';
+import '../../styles/dailyOverrideDialog.css';
 
 interface EventReceiveInfo {
     event: {
@@ -56,35 +61,156 @@ const InvalidEventWithTooltip: React.FC<{ reasons: string[]; children: React.Rea
 
 export const MyCalendar = () => {
     const calendarRef = useRef<FullCalendar>(null);
-    const { view, setView, setDateRange, dateRange, fetchAndStoreCalendarData, scheduledEvents, calendarContext } = useCalendarContext();
+    const { view, setView, setDateRange, dateRange, fetchAndStoreCalendarData, invalidateCalendarCache, scheduledEvents, calendarContext } = useCalendarContext();
 
-    // Generate background events for overlays (focus, availability) from calendarContext
+    // Dialog state
+    const [dialogOpen, setDialogOpen] = useState(false);
+    const [dialogType, setDialogType] = useState<'work_environment' | 'focus_slot' | null>(null);
+    const [dialogData, setDialogData] = useState<{
+        date: string;
+        environment?: string;
+        source?: string;
+        slot?: FocusSlot;
+        slotIndex?: number;
+    } | null>(null);
+
+    // Dialog handlers
+    const handleDialogSave = async (type: 'work_environment' | 'focus_slot', data: Record<string, unknown>) => {
+        console.log(`Saving ${type} override:`, data);
+        
+        try {
+            const date = data.date as string;
+            const currentDay = calendarContext.find(day => day.date === date);
+            if (!currentDay) {
+                throw new Error('Day not found in context');
+            }
+            
+            if (type === 'work_environment') {
+                const environment = data.environment as string;
+                try {
+                    await updateCalendarDay(date, { work_environment: environment });
+                } catch (updateError) {
+                    console.log('Update failed, creating new day:', updateError);
+                    // If update fails, create the day
+                    await createCalendarDay({
+                        date,
+                        work_environment: environment,
+                        focus_slots: currentDay.focus_slots,
+                        availability_slots: currentDay.availability_slots
+                    });
+                }
+            } else if (type === 'focus_slot') {
+                const slotIndex = data.slotIndex as number;
+                const updatedSlot = data.slot as FocusSlot;
+                
+                // Create updated focus slots
+                const updatedFocusSlots = [...currentDay.focus_slots];
+                updatedFocusSlots[slotIndex] = updatedSlot;
+                
+                try {
+                    await updateCalendarDay(date, { focus_slots: updatedFocusSlots });
+                } catch (updateError) {
+                    console.log('Update failed, creating new day:', updateError);
+                    // If update fails, create the day
+                    await createCalendarDay({
+                        date,
+                        work_environment: currentDay.work_environment,
+                        focus_slots: updatedFocusSlots,
+                        availability_slots: currentDay.availability_slots
+                    });
+                }
+            }
+            
+            // Invalidate cache and reload data
+            invalidateCalendarCache();
+            await fetchAndStoreCalendarData(dateRange);
+            
+            setDialogOpen(false);
+            setDialogType(null);
+            setDialogData(null);
+        } catch (error) {
+            console.error('Failed to save override:', error);
+            alert('Failed to save override. Please try again.');
+        }
+    };
+
+    const handleDialogDelete = async (type: 'focus_slot', data: Record<string, unknown>) => {
+        console.log(`Deleting ${type} override:`, data);
+        
+        try {
+            const date = data.date as string;
+            const slotIndex = data.slotIndex as number;
+            
+            // Get current day context
+            const currentDay = calendarContext.find(day => day.date === date);
+            if (!currentDay) {
+                throw new Error('Day not found in context');
+            }
+            
+            // Remove the focus slot
+            const updatedFocusSlots = currentDay.focus_slots.filter((_, index) => index !== slotIndex);
+            
+            try {
+                await updateCalendarDay(date, { focus_slots: updatedFocusSlots });
+            } catch (updateError) {
+                console.log('Update failed, creating new day:', updateError);
+                // If update fails, create the day
+                await createCalendarDay({
+                    date,
+                    work_environment: currentDay.work_environment,
+                    focus_slots: updatedFocusSlots,
+                    availability_slots: currentDay.availability_slots
+                });
+            }
+            
+            // Invalidate cache and reload data
+            invalidateCalendarCache();
+            await fetchAndStoreCalendarData(dateRange);
+            
+            setDialogOpen(false);
+            setDialogType(null);
+            setDialogData(null);
+        } catch (error) {
+            console.error('Failed to delete focus slot:', error);
+            alert('Failed to delete focus slot. Please try again.');
+        }
+    };
+
+    const handleDialogClose = () => {
+        setDialogOpen(false);
+        setDialogType(null);
+        setDialogData(null);
+    };
+
+    // Handle FullCalendar event clicks
+    const handleEventClick = (clickInfo: { event: { extendedProps: Record<string, unknown> } }) => {
+        const event = clickInfo.event;
+        const extendedProps = event.extendedProps;
+        const eventType = extendedProps.type as string;
+        const eventDate = extendedProps.date as string;
+        const eventSource = extendedProps.source as string;
+        
+        if (eventType === 'work_environment') {
+            const environment = extendedProps.work_environment as string;
+            console.log(`Work environment clicked: ${eventDate} - ${environment} (${eventSource})`);
+            setDialogType('work_environment');
+            setDialogData({ date: eventDate, environment, source: eventSource });
+            setDialogOpen(true);
+        }
+        // Focus slots are handled via right-click in eventContent
+    };
+
+    // Generate day context events from calendarContext
+    const dayContextEventSource = useDayContextEventSource({
+        dayContexts: Array.isArray(calendarContext) ? calendarContext : [],
+    });
+
+    // Legacy background events (keeping for compatibility)
     const backgroundEvents = React.useMemo(() => {
         const events: Partial<EventInput>[] = [];
-        (Array.isArray(calendarContext) ? calendarContext : []).forEach(day => {
-            // Focus overlay
-            if (day.focus) {
-                events.push({
-                    start: day.date + 'T00:00:00',
-                    end: day.date + 'T23:59:59',
-                    display: 'background',
-                    color: 'rgba(52, 152, 219, 0.15)', // blue for focus
-                    id: `focus-${day.date}`
-                });
-            }
-            // Availability overlay (if not available, show red background)
-            if (!day.available) {
-                events.push({
-                    start: day.date + 'T00:00:00',
-                    end: day.date + 'T23:59:59',
-                    display: 'background',
-                    color: 'rgba(231, 76, 60, 0.10)', // red for unavailable
-                    id: `unavailable-${day.date}`
-                });
-            }
-        });
+        // Note: Focus and availability are now handled by day context events
         return events;
-    }, [calendarContext]);
+    }, []);
 
     const handleEventReceive = async (info: EventReceiveInfo) => {
         console.log('Event received:', info.event);
@@ -171,12 +297,44 @@ export const MyCalendar = () => {
         }
     };
 
-    // Custom rendering for events to show validation feedback
+    // Custom rendering for events to show validation feedback and handle right-clicks
     const renderEventContent = (arg: EventContentArg) => {
         const { event, timeText } = arg;
         const validation = event.extendedProps.validation;
         const isInvalid = validation && validation.valid === false;
         const reasons = (validation && validation.reasons) || [];
+        
+        // Check if this is a day context event
+        const extendedProps = event.extendedProps as Record<string, unknown>;
+        const eventType = extendedProps.type as string;
+        const eventDate = extendedProps.date as string;
+        const eventSource = extendedProps.source as string;
+        const isDayContextEvent = eventType === 'work_environment' || eventType === 'focus_slot';
+        
+        const handleRightClick = (e: React.MouseEvent) => {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            if (eventType === 'focus_slot') {
+                // Find the original slot data
+                const dayContext = calendarContext.find(day => day.date === eventDate);
+                const slotIndex = parseInt(event.id.split('-').pop() || '0');
+                const slot = dayContext?.focus_slots[slotIndex];
+                
+                if (slot) {
+                    console.log(`Focus slot right-clicked: ${eventDate} - ${slot.focus_level} (${eventSource})`);
+                    setDialogType('focus_slot');
+                    setDialogData({ 
+                        date: eventDate, 
+                        slot, 
+                        slotIndex, 
+                        source: eventSource 
+                    });
+                    setDialogOpen(true);
+                }
+            }
+        };
+        
         return (
             <div
                 style={{
@@ -186,6 +344,7 @@ export const MyCalendar = () => {
                     padding: 2,
                     position: 'relative',
                 }}
+                onContextMenu={isDayContextEvent ? handleRightClick : undefined}
             >
                 <b>{timeText}</b> <span>{event.title}</span>
                 {isInvalid && (
@@ -198,47 +357,59 @@ export const MyCalendar = () => {
     };
 
     return (
-        <FullCalendar
-            ref={calendarRef}
-            plugins={[timeGridPlugin, interactionPlugin]}
-            initialView={view}
-            firstDay={0}
-            weekends={true}
-            hiddenDays={[5,6]}
-            businessHours={[
-              {
-                daysOfWeek: [ 0, 2, 4 ],
-                startTime: '09:45',
-                endTime: '18:00'
-              },
-              {
-                daysOfWeek: [ 1, 3 ],
-                startTime: '09:00',
-                endTime: '18:00'
-              }
-            ]}
-            nowIndicator={true}
-            scrollTime={'09:00:00'}
-            headerToolbar={{
-              left: 'prev,next',
-              center: 'title',
-              right: 'timeGridWeek,timeGridDay'
-            }}
-            editable={true}
-            droppable={true}
-            selectable={true}
-            selectMirror={true}
-            eventSources={[
-              { events: scheduledEvents },
-              { events: staticBackgroundEvents },
-              { events: backgroundEvents }
-            ]}
-            eventReceive={handleEventReceive}
-            eventDrop={handleEventDrop}
-            eventResize={handleEventResize}
-            viewDidMount={handleViewDidMount}
-            datesSet={handleDatesSet}
-            eventContent={renderEventContent}
-        />
+        <>
+            <FullCalendar
+                ref={calendarRef}
+                plugins={[timeGridPlugin, interactionPlugin]}
+                initialView={view}
+                firstDay={0}
+                weekends={true}
+                hiddenDays={[5,6]}
+                businessHours={[
+                  {
+                    daysOfWeek: [ 0, 2, 4 ],
+                    startTime: '09:45',
+                    endTime: '18:00'
+                  },
+                  {
+                    daysOfWeek: [ 1, 3 ],
+                    startTime: '09:00',
+                    endTime: '18:00'
+                  }
+                ]}
+                nowIndicator={true}
+                scrollTime={'09:00:00'}
+                headerToolbar={{
+                  left: 'prev,next',
+                  center: 'title',
+                  right: 'timeGridWeek,timeGridDay'
+                }}
+                editable={true}
+                droppable={true}
+                // selectable={true}
+                // selectMirror={true}
+                eventSources={[
+                  { events: scheduledEvents },
+                  { events: backgroundEvents },
+                  dayContextEventSource
+                ]}
+                eventReceive={handleEventReceive}
+                eventDrop={handleEventDrop}
+                eventResize={handleEventResize}
+                eventClick={handleEventClick}
+                viewDidMount={handleViewDidMount}
+                datesSet={handleDatesSet}
+                eventContent={renderEventContent}
+            />
+            
+            <DailyOverrideDialog
+                isOpen={dialogOpen}
+                type={dialogType}
+                data={dialogData}
+                onSave={handleDialogSave}
+                onDelete={handleDialogDelete}
+                onClose={handleDialogClose}
+            />
+        </>
     )
 }

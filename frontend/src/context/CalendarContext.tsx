@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import { fetchScheduledEvents } from '../api/tasks';
-import { fetchCalendarContext } from '../api/calendar';
+import { fetchCalendarContext, type CalendarDayContext } from '../api/calendar';
 
 // Types for calendar view and date range
 export type CalendarView = 'timeGridWeek' | 'timeGridDay';
@@ -9,7 +9,7 @@ export interface DateRange {
   end: string;   // YYYY-MM-DD
 }
 
-// Types for scheduled events and calendar context (to be refined as backend is implemented)
+// Types for scheduled events
 export interface ScheduledEvent {
   id: string;
   title: string;
@@ -21,12 +21,6 @@ export interface ScheduledEvent {
     valid: boolean;
     reasons: string[];
   };
-  // ...other fields as needed
-}
-export interface CalendarDayContext {
-  date: string;
-  focus: boolean;
-  available: boolean;
   // ...other fields as needed
 }
 

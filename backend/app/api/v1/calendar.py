@@ -115,6 +115,10 @@ async def update_calendar_day(
     update_data = calendar_update.dict(exclude_unset=True)
     
     for field, value in update_data.items():
+        if field == 'work_environment' and value is not None:
+            # Ensure work_environment is an Enum
+            if not isinstance(value, WorkEnvironmentEnum):
+                value = WorkEnvironmentEnum(value)
         setattr(calendar_day, field, value)
     
     try:

@@ -62,6 +62,7 @@ class User(Base):
     calendar_days = relationship("UserCalendarDay", back_populates="user", cascade="all, delete-orphan")
     scheduling_rules = relationship("SchedulingRule", back_populates="user", cascade="all, delete-orphan")
     goals = relationship("Goal", back_populates="user", cascade="all, delete-orphan")
+    day_settings = relationship("UserDaySettings", back_populates="user", cascade="all, delete-orphan")
 
 
 class UserCalendarDay(Base):
@@ -82,6 +83,28 @@ class UserCalendarDay(Base):
     # Constraints
     __table_args__ = (
         Index('idx_user_date', 'user_id', 'date', unique=True),
+    )
+
+
+class UserDaySettings(Base):
+    __tablename__ = "user_day_settings"
+    
+    setting_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+    setting_type = Column(String(30), nullable=False)  # work_environment, focus_slots, availability_slots
+    value = Column(JSON, nullable=False)  # The actual configuration value
+    recurrence_pattern = Column(JSON, nullable=False)  # RecurrencePattern as JSON
+    is_active = Column(Boolean, default=True)
+    created_at = Column(DateTime, default=func.now())
+    updated_at = Column(DateTime, default=func.now(), onupdate=func.now())
+    
+    # Relationships
+    user = relationship("User", back_populates="day_settings")
+    
+    # Constraints
+    __table_args__ = (
+        CheckConstraint("setting_type IN ('work_environment', 'focus_slots', 'availability_slots')", name='valid_setting_type'),
+        Index('idx_user_setting_type', 'user_id', 'setting_type'),
     )
 
 

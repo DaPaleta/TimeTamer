@@ -8,7 +8,9 @@ import { MainLayout } from './components/layout/MainLayout';
 import { TaskListPage } from './pages/tasks/TaskListPage';
 import CalendarPage from './pages/calendar/CalendarPage';
 import CategoryManagerPage from './pages/settings/CategoryManagerPage';
+import DayContextSettingsPage from './pages/settings/DayContextSettingsPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { CalendarProvider } from './context/CalendarContext';
 import Login from './pages/auth/Login';
 import Register from './pages/auth/Register';
 
@@ -27,21 +29,24 @@ export const App: React.FC = () => {
         <CssBaseline />
         <Router>
           <AuthProvider>
-            <Routes>
-              <Route path="/login" element={<Login />} />
-              <Route path="/register" element={<Register />} />
-              <Route element={<ProtectedRoute />}>
-                <Route path="/" element={<MainLayout />}>
-                  <Route index element={<Navigate to="/tasks" replace />} />
-                  <Route path="tasks" element={<TaskListPage />} />
-                  <Route path="calendar" element={<CalendarPage />} />
-                  <Route path="analytics" element={<AnalyticsPage />} />
-                  <Route path="settings" element={<CategoryManagerPage />} />
-                  <Route path="planner" element={<div>Planner Page (protected)</div>} />
+            <CalendarProvider>
+              <Routes>
+                <Route path="/login" element={<Login />} />
+                <Route path="/register" element={<Register />} />
+                <Route element={<ProtectedRoute />}>
+                  <Route path="/" element={<MainLayout />}>
+                    <Route index element={<Navigate to="/tasks" replace />} />
+                    <Route path="tasks" element={<TaskListPage />} />
+                    <Route path="calendar" element={<CalendarPage />} />
+                    <Route path="analytics" element={<AnalyticsPage />} />
+                    <Route path="settings" element={<CategoryManagerPage />} />
+                    <Route path="day-context-settings" element={<DayContextSettingsPage />} />
+                    <Route path="planner" element={<div>Planner Page (protected)</div>} />
+                  </Route>
                 </Route>
-              </Route>
-              <Route path="*" element={<Navigate to="/calendar" replace />} />
-            </Routes>
+                <Route path="*" element={<Navigate to="/calendar" replace />} />
+              </Routes>
+            </CalendarProvider>
           </AuthProvider>
         </Router>
       </LocalizationProvider>

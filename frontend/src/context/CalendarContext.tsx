@@ -44,6 +44,7 @@ interface CalendarContextType {
   error: string | null;
   setError: (err: string | null) => void;
   fetchAndStoreCalendarData: (range: DateRange) => Promise<void>;
+  invalidateCalendarCache: () => void;
 }
 
 const CalendarContext = createContext<CalendarContextType | undefined>(undefined);
@@ -72,14 +73,14 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       return;
     }
     try {
-      const [events, context] = await Promise.all([
+      const [events, contextResponse] = await Promise.all([
         fetchScheduledEvents(range.start, range.end),
         fetchCalendarContext(range.start, range.end),
       ]);
       console.log('[CalendarContext] setScheduledEvents', events);
       setScheduledEvents(events);
-      setCalendarContext(context);
-      calendarDataCache.set(cacheKey, { events, context });
+      setCalendarContext(contextResponse.days);
+      calendarDataCache.set(cacheKey, { events, context: contextResponse.days });
     } catch (err) {
       let message = 'Failed to load calendar data.';
       if (err instanceof Error) message += ` ${err.message}`;
@@ -87,6 +88,11 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     } finally {
       setLoading(false);
     }
+  }, []);
+
+  const invalidateCalendarCache = useCallback(() => {
+    console.log('[CalendarContext] Invalidating calendar cache');
+    calendarDataCache.clear();
   }, []);
 
   const setDateRangeLogged = (range: DateRange) => {
@@ -102,7 +108,8 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       calendarContext, setCalendarContext,
       loading, setLoading,
       error, setError,
-      fetchAndStoreCalendarData
+      fetchAndStoreCalendarData,
+      invalidateCalendarCache
     }}>
       {children}
     </CalendarContext.Provider>

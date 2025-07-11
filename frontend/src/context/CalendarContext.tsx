@@ -79,6 +79,7 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
       let message = 'Failed to load calendar data.';
       if (err instanceof Error) message += ` ${err.message}`;
       setError(message);
+      console.error(error)
     } finally {
       setLoading(false);
     }

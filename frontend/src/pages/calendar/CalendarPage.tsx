@@ -87,40 +87,6 @@ const CalendarPage = () => {
   // Show error toast for either calendar or unscheduled task errors
   const errorMessage = error || unscheduledError || '';
 
-  if (loading) {
-    return (
-      <div style={{ display: 'flex', gap: '20px' }}>
-        <div style={{ flex: '1' }}>
-          <h2>Calendar</h2>
-          <MyCalendar />
-        </div>
-        <div style={{ flex: '0 0 300px' }}>
-          <h2>Tasks</h2>
-          <div style={{ padding: '20px', textAlign: 'center' }}>
-            Loading calendar data...
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (error) {
-    return (
-      <div style={{ display: 'flex', gap: '20px' }}>
-        <div style={{ flex: '1' }}>
-          <h2>Calendar</h2>
-          <MyCalendar />
-        </div>
-        <div style={{ flex: '0 0 300px' }}>
-          <h2>Tasks</h2>
-          <div style={{ padding: '20px', textAlign: 'center', color: 'red' }}>
-            {error}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <>
       <SpinnerOverlay show={showSpinner} />

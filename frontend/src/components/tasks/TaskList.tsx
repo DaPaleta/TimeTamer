@@ -37,6 +37,11 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
   // Flatten all tasks from the initial prop for a source-of-truth state
   const initialTasks: TaskType[] = useMemo(() => Object.values(tasksBySortingKey).flat(), [tasksBySortingKey]);
   const [baseTasks, setBaseTasks] = useState<TaskType[]>(initialTasks);
+
+  // Keep baseTasks in sync with tasksBySortingKey prop
+  React.useEffect(() => {
+    setBaseTasks(Object.values(tasksBySortingKey).flat());
+  }, [tasksBySortingKey]);
   const processingMoveRef = useRef(false);
 
   // Grouping function: always groups from baseTasks

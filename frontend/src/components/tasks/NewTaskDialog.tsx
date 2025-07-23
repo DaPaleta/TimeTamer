@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect } from 'react'
 import {
   Dialog,
   DialogTitle,
@@ -19,33 +19,27 @@ import {
   ListItemText,
   Typography,
   Alert,
-} from "@mui/material";
-import { DateTimePicker } from "@mui/x-date-pickers/DateTimePicker";
-import { createTask, fetchCategories, updateTask } from "../../api/tasks";
-import type {
-  Category,
-  TaskInput as TaskInputBase,
-  RecurringPattern,
-  Task,
-} from "../../api/tasks";
+} from '@mui/material'
+import { DateTimePicker } from '@mui/x-date-pickers/DateTimePicker'
+import { createTask, fetchCategories, updateTask } from '../../api/tasks'
+import type { Category, TaskInput as TaskInputBase, RecurringPattern, Task } from '../../api/tasks'
 
-const PRIORITIES = ["low", "medium", "high", "urgent"] as const;
-const ENVIRONMENTS = ["home", "office", "outdoors", "hybrid"] as const;
+const PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const
+const ENVIRONMENTS = ['home', 'office', 'outdoors', 'hybrid'] as const
 
 interface NewTaskDialogProps {
-  open: boolean;
-  onClose: () => void;
-  onTaskCreated?: (task: Task) => void;
-  task?: Task;
-  onTaskUpdated?: (task: Task) => void;
+  open: boolean
+  onClose: () => void
+  onTaskCreated?: (task: Task) => void
+  task?: Task
+  onTaskUpdated?: (task: Task) => void
 }
 
-interface TaskInput
-  extends Omit<TaskInputBase, "deadline" | "recurring_pattern"> {
-  deadline: Date | null;
-  recurring_pattern?: Omit<RecurringPattern, "end_date"> & {
-    end_date?: Date | null;
-  };
+interface TaskInput extends Omit<TaskInputBase, 'deadline' | 'recurring_pattern'> {
+  deadline: Date | null
+  recurring_pattern?: Omit<RecurringPattern, 'end_date'> & {
+    end_date?: Date | null
+  }
 }
 
 export default function NewTaskDialog({
@@ -55,17 +49,17 @@ export default function NewTaskDialog({
   task,
   onTaskUpdated,
 }: NewTaskDialogProps) {
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [submitting, setSubmitting] = useState(false);
+  const [categories, setCategories] = useState<Category[]>([])
+  const [loadingCategories, setLoadingCategories] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [submitting, setSubmitting] = useState(false)
 
   const [form, setForm] = useState<TaskInput>({
-    title: "",
-    description: "",
+    title: '',
+    description: '',
     category_id: undefined,
-    priority: "medium",
-    status: "todo",
+    priority: 'medium',
+    status: 'todo',
     estimated_duration_minutes: 30,
     deadline: null,
     fitting_environments: [],
@@ -76,39 +70,32 @@ export default function NewTaskDialog({
     is_endless: false,
     is_recurring: false,
     recurring_pattern: undefined,
-  });
+  })
 
   useEffect(() => {
     if (open) {
-      setLoadingCategories(true);
+      setLoadingCategories(true)
       fetchCategories()
         .then(setCategories)
         .catch(() => setCategories([]))
-        .finally(() => setLoadingCategories(false));
+        .finally(() => setLoadingCategories(false))
       if (task) {
         // Pre-fill form for edit
         setForm({
-          title: task.title || "",
-          description: task.description || "",
+          title: task.title || '',
+          description: task.description || '',
           category_id: task.category_id || undefined,
           priority:
-            (task.priority?.toLowerCase() as
-              | "low"
-              | "medium"
-              | "high"
-              | "urgent"
-              | undefined) || "medium",
+            (task.priority?.toLowerCase() as 'low' | 'medium' | 'high' | 'urgent' | undefined) ||
+            'medium',
           estimated_duration_minutes: task.estimated_duration_minutes || 30,
           deadline: task.deadline ? new Date(task.deadline) : null,
-          fitting_environments: (task.fitting_environments?.map((env) =>
-            env.toLowerCase()
-          ) || []) as ("home" | "office" | "outdoors" | "hybrid")[],
+          fitting_environments: (task.fitting_environments?.map((env) => env.toLowerCase()) ||
+            []) as ('home' | 'office' | 'outdoors' | 'hybrid')[],
           requires_focus: !!task.requires_focus,
           requires_deep_work: !!task.requires_deep_work,
           can_be_interrupted:
-            task.can_be_interrupted !== undefined
-              ? !!task.can_be_interrupted
-              : true,
+            task.can_be_interrupted !== undefined ? !!task.can_be_interrupted : true,
           requires_meeting: !!task.requires_meeting,
           is_endless: !!task.is_endless,
           is_recurring: !!task.is_recurring,
@@ -120,13 +107,13 @@ export default function NewTaskDialog({
                   : undefined,
               }
             : undefined,
-        });
+        })
       } else {
         setForm({
-          title: "",
-          description: "",
+          title: '',
+          description: '',
           category_id: undefined,
-          priority: "medium",
+          priority: 'medium',
           estimated_duration_minutes: 30,
           deadline: null,
           fitting_environments: [],
@@ -137,41 +124,43 @@ export default function NewTaskDialog({
           is_endless: false,
           is_recurring: false,
           recurring_pattern: undefined,
-        });
+        })
       }
     }
-  }, [open, task]);
+  }, [open, task])
 
   const handleChange = (field: keyof TaskInput, value: unknown) => {
-    setForm((prev) => ({ ...prev, [field]: value }));
-  };
+    setForm((prev) => ({ ...prev, [field]: value }))
+  }
 
   const validate = (): string | null => {
-    if (!form.title.trim()) return "Title is required.";
-    if (
-      !form.estimated_duration_minutes ||
-      form.estimated_duration_minutes <= 0
-    )
-      return "Estimated duration must be positive.";
-    return null;
-  };
+    if (!form.title.trim()) return 'Title is required.'
+    if (!form.estimated_duration_minutes || form.estimated_duration_minutes <= 0)
+      return 'Estimated duration must be positive.'
+    return null
+  }
 
   const handleSubmit = async () => {
-    setError(null);
-    const validationError = validate();
+    setError(null)
+    const validationError = validate()
     if (validationError) {
-      setError(validationError);
-      return;
+      setError(validationError)
+      return
     }
-    setSubmitting(true);
+    setSubmitting(true)
     try {
       const payload: TaskInputBase = {
         ...form,
         fitting_environments: Array.isArray(form.fitting_environments)
-          ? form.fitting_environments.map(env => env.toUpperCase()) as ('home'|'office'|'hybrid'|'outdoors')[]
+          ? (form.fitting_environments.map((env) => env.toUpperCase()) as (
+              | 'home'
+              | 'office'
+              | 'hybrid'
+              | 'outdoors'
+            )[])
           : [],
         deadline: form.deadline ? form.deadline.toISOString() : undefined,
-        status: form.status || "todo",
+        status: form.status || 'todo',
         recurring_pattern:
           form.is_recurring && form.recurring_pattern
             ? {
@@ -181,42 +170,42 @@ export default function NewTaskDialog({
                   : undefined,
               }
             : undefined,
-      };
-      console.log('Submitting payload:', payload);
-      let result;
-      if (task && task.task_id) {
-        result = await updateTask(task.task_id, payload);
-        if (onTaskUpdated) onTaskUpdated(result);
-      } else {
-        result = await createTask(payload);
-        if (onTaskCreated) onTaskCreated(result);
       }
-      onClose();
+      console.log('Submitting payload:', payload)
+      let result
+      if (task && task.task_id) {
+        result = await updateTask(task.task_id, payload)
+        if (onTaskUpdated) onTaskUpdated(result)
+      } else {
+        result = await createTask(payload)
+        if (onTaskCreated) onTaskCreated(result)
+      }
+      onClose()
     } catch (err: unknown) {
       if (
         err &&
-        typeof err === "object" &&
-        "response" in err &&
+        typeof err === 'object' &&
+        'response' in err &&
         err.response &&
-        typeof err.response === "object" &&
-        "data" in err.response &&
+        typeof err.response === 'object' &&
+        'data' in err.response &&
         err.response.data &&
-        typeof err.response.data === "object" &&
-        "error" in err.response.data &&
+        typeof err.response.data === 'object' &&
+        'error' in err.response.data &&
         err.response.data.error &&
-        typeof err.response.data.error === "object" &&
-        "message" in err.response.data.error
+        typeof err.response.data.error === 'object' &&
+        'message' in err.response.data.error
       ) {
-        setError((err.response.data.error as { message: string }).message);
-        console.error('Backend error response:', err.response.data);
+        setError((err.response.data.error as { message: string }).message)
+        console.error('Backend error response:', err.response.data)
       } else {
-        setError(task ? "Failed to update task." : "Failed to create task.");
-        console.error('Unknown error:', err);
+        setError(task ? 'Failed to update task.' : 'Failed to create task.')
+        console.error('Unknown error:', err)
       }
     } finally {
-      setSubmitting(false);
+      setSubmitting(false)
     }
-  };
+  }
 
   // Recurring pattern fields (simple example)
   const RecurringFields = () => (
@@ -226,9 +215,9 @@ export default function NewTaskDialog({
         label="Frequency"
         fullWidth
         margin="dense"
-        value={form.recurring_pattern?.frequency || ""}
+        value={form.recurring_pattern?.frequency || ''}
         onChange={(e) =>
-          handleChange("recurring_pattern", {
+          handleChange('recurring_pattern', {
             ...form.recurring_pattern,
             frequency: e.target.value,
           })
@@ -240,9 +229,9 @@ export default function NewTaskDialog({
         type="number"
         fullWidth
         margin="dense"
-        value={form.recurring_pattern?.interval || ""}
+        value={form.recurring_pattern?.interval || ''}
         onChange={(e) =>
-          handleChange("recurring_pattern", {
+          handleChange('recurring_pattern', {
             ...form.recurring_pattern,
             interval: Number(e.target.value),
           })
@@ -253,13 +242,11 @@ export default function NewTaskDialog({
         label="Days of Week"
         fullWidth
         margin="dense"
-        value={form.recurring_pattern?.days_of_week?.join(",") || ""}
+        value={form.recurring_pattern?.days_of_week?.join(',') || ''}
         onChange={(e) =>
-          handleChange("recurring_pattern", {
+          handleChange('recurring_pattern', {
             ...form.recurring_pattern,
-            days_of_week: e.target.value
-              .split(",")
-              .map((d: string) => d.trim()),
+            days_of_week: e.target.value.split(',').map((d: string) => d.trim()),
           })
         }
         placeholder="e.g. MO,WE,FR"
@@ -268,19 +255,19 @@ export default function NewTaskDialog({
         label="End Date"
         value={form.recurring_pattern?.end_date || null}
         onChange={(date: Date | null) =>
-          handleChange("recurring_pattern", {
+          handleChange('recurring_pattern', {
             ...form.recurring_pattern,
             end_date: date,
           })
         }
-        slotProps={{ textField: { fullWidth: true, margin: "dense" } }}
+        slotProps={{ textField: { fullWidth: true, margin: 'dense' } }}
       />
     </Box>
-  );
+  )
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle>{task ? "Edit Task" : "Create New Task"}</DialogTitle>
+      <DialogTitle>{task ? 'Edit Task' : 'Create New Task'}</DialogTitle>
       <DialogContent dividers>
         {error && (
           <Alert severity="error" sx={{ mb: 2 }}>
@@ -292,7 +279,7 @@ export default function NewTaskDialog({
             <TextField
               label="Title"
               value={form.title}
-              onChange={(e) => handleChange("title", e.target.value)}
+              onChange={(e) => handleChange('title', e.target.value)}
               fullWidth
               required
               margin="dense"
@@ -302,7 +289,7 @@ export default function NewTaskDialog({
             <TextField
               label="Description"
               value={form.description}
-              onChange={(e) => handleChange("description", e.target.value)}
+              onChange={(e) => handleChange('description', e.target.value)}
               fullWidth
               multiline
               minRows={2}
@@ -313,10 +300,8 @@ export default function NewTaskDialog({
             <FormControl fullWidth margin="dense">
               <InputLabel>Category</InputLabel>
               <Select
-                value={form.category_id || ""}
-                onChange={(e) =>
-                  handleChange("category_id", e.target.value || undefined)
-                }
+                value={form.category_id || ''}
+                onChange={(e) => handleChange('category_id', e.target.value || undefined)}
                 input={<OutlinedInput label="Category" />}
                 disabled={loadingCategories}
               >
@@ -329,7 +314,7 @@ export default function NewTaskDialog({
                       label={cat.name}
                       size="small"
                       sx={{
-                        bgcolor: cat.color_hex + "20",
+                        bgcolor: cat.color_hex + '20',
                         color: cat.color_hex,
                         borderColor: cat.color_hex,
                         mr: 1,
@@ -346,7 +331,7 @@ export default function NewTaskDialog({
               select
               label="Priority"
               value={form.priority}
-              onChange={(e) => handleChange("priority", e.target.value)}
+              onChange={(e) => handleChange('priority', e.target.value)}
               fullWidth
               margin="dense"
             >
@@ -362,12 +347,7 @@ export default function NewTaskDialog({
               label="Estimated Duration (minutes)"
               type="number"
               value={form.estimated_duration_minutes}
-              onChange={(e) =>
-                handleChange(
-                  "estimated_duration_minutes",
-                  Number(e.target.value)
-                )
-              }
+              onChange={(e) => handleChange('estimated_duration_minutes', Number(e.target.value))}
               fullWidth
               required
               margin="dense"
@@ -378,8 +358,8 @@ export default function NewTaskDialog({
             <DateTimePicker
               label="Deadline"
               value={form.deadline}
-              onChange={(date: Date | null) => handleChange("deadline", date)}
-              slotProps={{ textField: { fullWidth: true, margin: "dense" } }}
+              onChange={(date: Date | null) => handleChange('deadline', date)}
+              slotProps={{ textField: { fullWidth: true, margin: 'dense' } }}
             />
           </Grid>
           <Grid size={{ xs: 12 }}>
@@ -387,32 +367,24 @@ export default function NewTaskDialog({
               <InputLabel>Fitting Environments</InputLabel>
               <Select
                 multiple
-                value={
-                  Array.isArray(form.fitting_environments)
-                    ? form.fitting_environments
-                    : []
-                }
+                value={Array.isArray(form.fitting_environments) ? form.fitting_environments : []}
                 onChange={(e) =>
                   handleChange(
-                    "fitting_environments",
+                    'fitting_environments',
                     Array.isArray(e.target.value)
                       ? e.target.value
-                      : typeof e.target.value === "string"
-                      ? e.target.value.split(",")
-                      : []
+                      : typeof e.target.value === 'string'
+                        ? e.target.value.split(',')
+                        : []
                   )
                 }
                 input={<OutlinedInput label="Fitting Environments" />}
-                renderValue={(selected) => (selected as string[]).join(", ")}
+                renderValue={(selected) => (selected as string[]).join(', ')}
               >
                 {ENVIRONMENTS.map((env) => (
                   <MenuItem key={env} value={env}>
-                    <Checkbox
-                      checked={form.fitting_environments?.includes(env)}
-                    />
-                    <ListItemText
-                      primary={env.charAt(0).toUpperCase() + env.slice(1)}
-                    />
+                    <Checkbox checked={form.fitting_environments?.includes(env)} />
+                    <ListItemText primary={env.charAt(0).toUpperCase() + env.slice(1)} />
                   </MenuItem>
                 ))}
               </Select>
@@ -423,9 +395,7 @@ export default function NewTaskDialog({
               control={
                 <Checkbox
                   checked={form.requires_focus}
-                  onChange={(e) =>
-                    handleChange("requires_focus", e.target.checked)
-                  }
+                  onChange={(e) => handleChange('requires_focus', e.target.checked)}
                 />
               }
               label="Requires Focus"
@@ -434,9 +404,7 @@ export default function NewTaskDialog({
               control={
                 <Checkbox
                   checked={form.requires_deep_work}
-                  onChange={(e) =>
-                    handleChange("requires_deep_work", e.target.checked)
-                  }
+                  onChange={(e) => handleChange('requires_deep_work', e.target.checked)}
                 />
               }
               label="Requires Deep Work"
@@ -445,9 +413,7 @@ export default function NewTaskDialog({
               control={
                 <Checkbox
                   checked={form.can_be_interrupted}
-                  onChange={(e) =>
-                    handleChange("can_be_interrupted", e.target.checked)
-                  }
+                  onChange={(e) => handleChange('can_be_interrupted', e.target.checked)}
                 />
               }
               label="Can Be Interrupted"
@@ -458,9 +424,7 @@ export default function NewTaskDialog({
               control={
                 <Checkbox
                   checked={form.requires_meeting}
-                  onChange={(e) =>
-                    handleChange("requires_meeting", e.target.checked)
-                  }
+                  onChange={(e) => handleChange('requires_meeting', e.target.checked)}
                 />
               }
               label="Requires Meeting"
@@ -469,7 +433,7 @@ export default function NewTaskDialog({
               control={
                 <Checkbox
                   checked={form.is_endless}
-                  onChange={(e) => handleChange("is_endless", e.target.checked)}
+                  onChange={(e) => handleChange('is_endless', e.target.checked)}
                 />
               }
               label="Is Endless"
@@ -478,9 +442,7 @@ export default function NewTaskDialog({
               control={
                 <Checkbox
                   checked={form.is_recurring}
-                  onChange={(e) =>
-                    handleChange("is_recurring", e.target.checked)
-                  }
+                  onChange={(e) => handleChange('is_recurring', e.target.checked)}
                 />
               }
               label="Is Recurring"
@@ -497,14 +459,10 @@ export default function NewTaskDialog({
         <Button onClick={onClose} disabled={submitting}>
           Cancel
         </Button>
-        <Button
-          onClick={handleSubmit}
-          variant="contained"
-          disabled={submitting}
-        >
-          {task ? "Update" : "Create"}
+        <Button onClick={handleSubmit} variant="contained" disabled={submitting}>
+          {task ? 'Update' : 'Create'}
         </Button>
       </DialogActions>
     </Dialog>
-  );
+  )
 }

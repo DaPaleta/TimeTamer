@@ -1,15 +1,15 @@
-import React, { useState } from 'react';
-import { useAuth } from '../../context/AuthContext';
-import { useNavigate } from 'react-router-dom';
-import type { AxiosError } from 'axios';
+import React, { useState } from 'react'
+import { useAuth } from '../../context/AuthContext'
+import { useNavigate } from 'react-router-dom'
+import type { AxiosError } from 'axios'
 
 const Login: React.FC = () => {
-  const { login } = useAuth();
-  const navigate = useNavigate();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState<string | null>(null);
-  const [loading, setLoading] = useState(false);
+  const { login } = useAuth()
+  const navigate = useNavigate()
+  const [username, setUsername] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
 
   function isAxiosError(error: unknown): error is AxiosError<{ error: { message: string } }> {
     return (
@@ -17,26 +17,26 @@ const Login: React.FC = () => {
       error !== null &&
       'isAxiosError' in error &&
       (error as AxiosError).isAxiosError === true
-    );
+    )
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
-    setError(null);
+    e.preventDefault()
+    setLoading(true)
+    setError(null)
     try {
-      await login(username, password);
-      navigate('/calendar');
+      await login(username, password)
+      navigate('/calendar')
     } catch (err: unknown) {
       if (isAxiosError(err) && err.response && err.response.data && err.response.data.error) {
-        setError(err.response.data.error.message);
+        setError(err.response.data.error.message)
       } else {
-        setError('Login failed. Please try again.');
+        setError('Login failed. Please try again.')
       }
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   return (
     <div className="auth-container">
@@ -48,7 +48,7 @@ const Login: React.FC = () => {
             type="text"
             name="username"
             value={username}
-            onChange={e => setUsername(e.target.value)}
+            onChange={(e) => setUsername(e.target.value)}
             required
             autoFocus
           />
@@ -59,18 +59,20 @@ const Login: React.FC = () => {
             type="password"
             name="password"
             value={password}
-            onChange={e => setPassword(e.target.value)}
+            onChange={(e) => setPassword(e.target.value)}
             required
           />
         </label>
         {error && <div className="auth-error">{error}</div>}
-        <button type="submit" disabled={loading}>{loading ? 'Logging in...' : 'Login'}</button>
+        <button type="submit" disabled={loading}>
+          {loading ? 'Logging in...' : 'Login'}
+        </button>
       </form>
       <div className="auth-switch">
         Don&apos;t have an account? <a href="/register">Register</a>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default Login; 
+export default Login

@@ -1,26 +1,26 @@
-import React from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom';
-import { ThemeProvider, CssBaseline } from '@mui/material';
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns';
-import { theme } from './styles/theme';
-import { MainLayout } from './components/layout/MainLayout';
-import { TaskListPage } from './pages/tasks/TaskListPage';
-import CalendarPage from './pages/calendar/CalendarPage';
-import CategoryManagerPage from './pages/settings/CategoryManagerPage';
-import DayContextSettingsPage from './pages/settings/DayContextSettingsPage';
-import { AuthProvider, useAuth } from './context/AuthContext';
-import { CalendarProvider } from './context/CalendarContext';
-import Login from './pages/auth/Login';
-import Register from './pages/auth/Register';
+import React from 'react'
+import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom'
+import { ThemeProvider, CssBaseline } from '@mui/material'
+import { LocalizationProvider } from '@mui/x-date-pickers'
+import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
+import { theme } from './styles/theme'
+import { MainLayout } from './components/layout/MainLayout'
+import { TaskListPage } from './pages/tasks/TaskListPage'
+import CalendarPage from './pages/calendar/CalendarPage'
+import CategoryManagerPage from './pages/settings/CategoryManagerPage'
+import DayContextSettingsPage from './pages/settings/DayContextSettingsPage'
+import { AuthProvider, useAuth } from './context/AuthContext'
+import { CalendarProvider } from './context/CalendarContext'
+import Login from './pages/auth/Login'
+import Register from './pages/auth/Register'
 
 // Placeholder components for other routes
-const AnalyticsPage = () => <div>Analytics Page (Coming Soon)</div>;
+const AnalyticsPage = () => <div>Analytics Page (Coming Soon)</div>
 
 const ProtectedRoute: React.FC = () => {
-  const { isAuthenticated } = useAuth();
-  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />;
-};
+  const { isAuthenticated } = useAuth()
+  return isAuthenticated ? <Outlet /> : <Navigate to="/login" replace />
+}
 
 export const App: React.FC = () => {
   return (
@@ -51,7 +51,7 @@ export const App: React.FC = () => {
         </Router>
       </LocalizationProvider>
     </ThemeProvider>
-  );
-};
+  )
+}
 
-export default App;
+export default App

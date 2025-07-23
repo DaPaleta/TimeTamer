@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react'
 import {
   Box,
   Container,
@@ -14,162 +14,158 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-} from '@mui/material';
-import SearchIcon from '@mui/icons-material/Search';
-import AddIcon from '@mui/icons-material/Add';
-import { TaskCard } from '../../components/tasks/TaskCard';
-import NewTaskDialog from '../../components/tasks/NewTaskDialog';
-import { fetchTasks, deleteTask, fetchCategories } from '../../api/tasks';
-import type { Task, Category, FetchTasksParams } from '../../api/tasks';
+} from '@mui/material'
+import SearchIcon from '@mui/icons-material/Search'
+import AddIcon from '@mui/icons-material/Add'
+import { TaskCard } from '../../components/tasks/TaskCard'
+import NewTaskDialog from '../../components/tasks/NewTaskDialog'
+import { fetchTasks, deleteTask, fetchCategories } from '../../api/tasks'
+import type { Task, Category, FetchTasksParams } from '../../api/tasks'
 
-const PAGE_SIZE = 9;
+const PAGE_SIZE = 9
 
-type SortOption = 'deadline' | 'priority' | 'status';
-type StatusOption = 'all' | 'todo' | 'in_progress' | 'completed' | 'blocked';
+type SortOption = 'deadline' | 'priority' | 'status'
+type StatusOption = 'all' | 'todo' | 'in_progress' | 'completed' | 'blocked'
 
-type FilterOption = StatusOption;
+type FilterOption = StatusOption
 
-type PriorityOption = 'all' | 'low' | 'medium' | 'high' | 'urgent';
+type PriorityOption = 'all' | 'low' | 'medium' | 'high' | 'urgent'
 
 export const TaskListPage: React.FC = () => {
-  const [tasks, setTasks] = useState<Task[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [sortBy, setSortBy] = useState<SortOption>('deadline');
-  const [sortOrder] = useState<'asc' | 'desc'>('asc');
-  const [filterBy, setFilterBy] = useState<FilterOption>('all');
-  const [priorityFilter, setPriorityFilter] = useState<PriorityOption>('all');
-  const [categoryFilter, setCategoryFilter] = useState<string>('all');
-  const [categories, setCategories] = useState<Category[]>([]);
-  const [page, setPage] = useState(1);
-  const [total, setTotal] = useState(0);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editTask, setEditTask] = useState<Task | null>(null);
-  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
-  const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([])
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [searchQuery, setSearchQuery] = useState('')
+  const [sortBy, setSortBy] = useState<SortOption>('deadline')
+  const [sortOrder] = useState<'asc' | 'desc'>('asc')
+  const [filterBy, setFilterBy] = useState<FilterOption>('all')
+  const [priorityFilter, setPriorityFilter] = useState<PriorityOption>('all')
+  const [categoryFilter, setCategoryFilter] = useState<string>('all')
+  const [categories, setCategories] = useState<Category[]>([])
+  const [page, setPage] = useState(1)
+  const [total, setTotal] = useState(0)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editTask, setEditTask] = useState<Task | null>(null)
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [deleteTaskId, setDeleteTaskId] = useState<string | null>(null)
 
   // Debounced search
   useEffect(() => {
     const handler = setTimeout(() => {
-      setPage(1);
-      fetchTaskList(1);
-    }, 400);
-    return () => clearTimeout(handler);
+      setPage(1)
+      fetchTaskList(1)
+    }, 400)
+    return () => clearTimeout(handler)
     // eslint-disable-next-line
-  }, [searchQuery]);
+  }, [searchQuery])
 
   useEffect(() => {
-    fetchCategories().then(setCategories).catch(() => setCategories([]));
-  }, []);
+    fetchCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]))
+  }, [])
 
   useEffect(() => {
-    fetchTaskList(page);
+    fetchTaskList(page)
     // eslint-disable-next-line
-  }, [sortBy, sortOrder, filterBy, priorityFilter, categoryFilter, page]);
+  }, [sortBy, sortOrder, filterBy, priorityFilter, categoryFilter, page])
 
-  const fetchTaskList = useCallback(async (pageNum: number) => {
-    setLoading(true);
-    setError(null);
-    const params: FetchTasksParams = {
-      page: pageNum,
-      limit: PAGE_SIZE,
-      sort_by: sortBy,
-      sort_order: sortOrder,
-      search: searchQuery || undefined,
-    };
-    if (filterBy !== 'all') params.status = filterBy;
-    if (priorityFilter !== 'all') params.priority = priorityFilter;
-    if (categoryFilter !== 'all') params.category_id = categoryFilter;
-    try {
-      const res = await fetchTasks(params);
-      console.debug("Fetched tasks:", res)
-      setTasks(res.tasks || []);
-      setTotal(res.total ?? res.tasks.length ?? 0);
-    } catch {
-      setError('Failed to load tasks.');
-    } finally {
-      setLoading(false);
-    }
-  }, [sortBy, sortOrder, filterBy, priorityFilter, categoryFilter, searchQuery]);
+  const fetchTaskList = useCallback(
+    async (pageNum: number) => {
+      setLoading(true)
+      setError(null)
+      const params: FetchTasksParams = {
+        page: pageNum,
+        limit: PAGE_SIZE,
+        sort_by: sortBy,
+        sort_order: sortOrder,
+        search: searchQuery || undefined,
+      }
+      if (filterBy !== 'all') params.status = filterBy
+      if (priorityFilter !== 'all') params.priority = priorityFilter
+      if (categoryFilter !== 'all') params.category_id = categoryFilter
+      try {
+        const res = await fetchTasks(params)
+        console.debug('Fetched tasks:', res)
+        setTasks(res.tasks || [])
+        setTotal(res.total ?? res.tasks.length ?? 0)
+      } catch {
+        setError('Failed to load tasks.')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [sortBy, sortOrder, filterBy, priorityFilter, categoryFilter, searchQuery]
+  )
 
   const handleCreateTask = () => {
-    setEditTask(null);
-    setDialogOpen(true);
-  };
+    setEditTask(null)
+    setDialogOpen(true)
+  }
 
   const handleDialogClose = () => {
-    setDialogOpen(false);
-    setEditTask(null);
-  };
+    setDialogOpen(false)
+    setEditTask(null)
+  }
 
   const handleTaskCreated = () => {
-    setDialogOpen(false);
-    setEditTask(null);
-    fetchTaskList(page);
-  };
+    setDialogOpen(false)
+    setEditTask(null)
+    fetchTaskList(page)
+  }
 
   const handleTaskUpdated = () => {
-    setDialogOpen(false);
-    setEditTask(null);
-    fetchTaskList(page);
-  };
+    setDialogOpen(false)
+    setEditTask(null)
+    fetchTaskList(page)
+  }
 
   const handleEditTask = (taskId: string) => {
-    const task = tasks.find((t) => t.task_id === taskId);
+    const task = tasks.find((t) => t.task_id === taskId)
     if (task) {
-      setEditTask(task);
-      setDialogOpen(true);
+      setEditTask(task)
+      setDialogOpen(true)
     }
-  };
+  }
 
   const handleDeleteTask = (taskId: string) => {
-    setDeleteTaskId(taskId);
-    setDeleteDialogOpen(true);
-  };
+    setDeleteTaskId(taskId)
+    setDeleteDialogOpen(true)
+  }
 
   const confirmDeleteTask = async () => {
-    if (!deleteTaskId) return;
-    setLoading(true);
+    if (!deleteTaskId) return
+    setLoading(true)
     try {
-      await deleteTask(deleteTaskId);
-      setDeleteDialogOpen(false);
-      setDeleteTaskId(null);
-      fetchTaskList(page);
+      await deleteTask(deleteTaskId)
+      setDeleteDialogOpen(false)
+      setDeleteTaskId(null)
+      fetchTaskList(page)
     } catch {
-      setError('Failed to delete task.');
+      setError('Failed to delete task.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   const handlePageChange = (_: React.ChangeEvent<unknown>, value: number) => {
-    setPage(value);
-  };
+    setPage(value)
+  }
 
   return (
     <Container maxWidth="lg">
       <Box sx={{ mb: 4 }}>
-        <Box
-          display="flex"
-          justifyContent="space-between"
-          alignItems="center"
-          mb={3}
-        >
+        <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
           <Typography variant="h4" component="h1">
             Tasks
           </Typography>
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateTask}
-          >
+          <Button variant="contained" startIcon={<AddIcon />} onClick={handleCreateTask}>
             Create Task
           </Button>
         </Box>
 
         <Grid container spacing={2} sx={{ mb: 3 }}>
-          <Grid size={{xs: 12, md: 4}}>
+          <Grid size={{ xs: 12, md: 4 }}>
             <TextField
               fullWidth
               variant="outlined"
@@ -185,7 +181,7 @@ export const TaskListPage: React.FC = () => {
               }}
             />
           </Grid>
-          <Grid size={{xs: 12, md: 2}}>
+          <Grid size={{ xs: 12, md: 2 }}>
             <TextField
               select
               fullWidth
@@ -199,7 +195,7 @@ export const TaskListPage: React.FC = () => {
               <MenuItem value="status">Status</MenuItem>
             </TextField>
           </Grid>
-          <Grid size={{xs: 12, md: 2}}>
+          <Grid size={{ xs: 12, md: 2 }}>
             <TextField
               select
               fullWidth
@@ -215,7 +211,7 @@ export const TaskListPage: React.FC = () => {
               <MenuItem value="blocked">Blocked</MenuItem>
             </TextField>
           </Grid>
-          <Grid size={{xs: 12, md: 2}}>
+          <Grid size={{ xs: 12, md: 2 }}>
             <TextField
               select
               fullWidth
@@ -231,7 +227,7 @@ export const TaskListPage: React.FC = () => {
               <MenuItem value="urgent">Urgent</MenuItem>
             </TextField>
           </Grid>
-          <Grid size={{xs: 12, md: 2}}>
+          <Grid size={{ xs: 12, md: 2 }}>
             <TextField
               select
               fullWidth
@@ -242,7 +238,9 @@ export const TaskListPage: React.FC = () => {
             >
               <MenuItem value="all">All</MenuItem>
               {categories.map((cat) => (
-                <MenuItem key={cat.category_id} value={cat.category_id}>{cat.name}</MenuItem>
+                <MenuItem key={cat.category_id} value={cat.category_id}>
+                  {cat.name}
+                </MenuItem>
               ))}
             </TextField>
           </Grid>
@@ -267,7 +265,7 @@ export const TaskListPage: React.FC = () => {
         <>
           <Grid container spacing={2}>
             {tasks.map((task) => (
-              <Grid size={{xs: 12, md: 6, lg: 4}} key={task.task_id}>
+              <Grid size={{ xs: 12, md: 6, lg: 4 }} key={task.task_id}>
                 <TaskCard
                   task={{
                     id: task.task_id,
@@ -276,7 +274,12 @@ export const TaskListPage: React.FC = () => {
                     priority: task.priority,
                     status: task.status,
                     estimatedDuration: task.estimated_duration_minutes,
-                    environment: (task.fitting_environments && task.fitting_environments[0]) as 'home' | 'office' | 'outdoors' | 'hybrid' || 'home',
+                    environment:
+                      ((task.fitting_environments && task.fitting_environments[0]) as
+                        | 'home'
+                        | 'office'
+                        | 'outdoors'
+                        | 'hybrid') || 'home',
                     deadline: task.deadline ? new Date(task.deadline) : undefined,
                     category: task.category
                       ? { name: task.category.name, color: task.category.color_hex }
@@ -313,10 +316,14 @@ export const TaskListPage: React.FC = () => {
           <Typography>Are you sure you want to delete this task?</Typography>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setDeleteDialogOpen(false)} disabled={loading}>Cancel</Button>
-          <Button onClick={confirmDeleteTask} color="error" disabled={loading} variant="contained">Delete</Button>
+          <Button onClick={() => setDeleteDialogOpen(false)} disabled={loading}>
+            Cancel
+          </Button>
+          <Button onClick={confirmDeleteTask} color="error" disabled={loading} variant="contained">
+            Delete
+          </Button>
         </DialogActions>
       </Dialog>
     </Container>
-  );
-}; 
+  )
+}

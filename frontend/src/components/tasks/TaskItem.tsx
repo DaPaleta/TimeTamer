@@ -1,20 +1,25 @@
-import React, { memo } from "react";
-import type { Task } from "../../api/tasks";
+import React, { memo } from 'react'
+import type { Task } from '../../api/tasks'
 
 interface TaskItemProps {
-  task: Task & { duration: string };
+  task: Task & { duration: string }
 }
 
 const TaskItem: React.FC<TaskItemProps> = memo(({ task }) => {
   const getPriorityColor = (priority?: string) => {
     switch (priority) {
-      case 'urgent': return '#f44336';
-      case 'high': return '#ff9800';
-      case 'medium': return '#ffc107';
-      case 'low': return '#4caf50';
-      default: return '#9e9e9e';
+      case 'urgent':
+        return '#f44336'
+      case 'high':
+        return '#ff9800'
+      case 'medium':
+        return '#ffc107'
+      case 'low':
+        return '#4caf50'
+      default:
+        return '#9e9e9e'
     }
-  };
+  }
 
   return (
     <div
@@ -29,32 +34,28 @@ const TaskItem: React.FC<TaskItemProps> = memo(({ task }) => {
         <div className="task-header" data-testid="task-header">
           <span className="task-title">{task.title}</span>
           {task.priority && (
-            <span 
+            <span
               className="task-priority"
-              style={{ 
+              style={{
                 backgroundColor: getPriorityColor(task.priority),
                 color: 'white',
                 fontSize: '10px',
                 padding: '2px 6px',
                 borderRadius: '4px',
-                textTransform: 'uppercase'
+                textTransform: 'uppercase',
               }}
             >
               {task.priority}
             </span>
           )}
         </div>
-        {task.description && (
-          <div className="task-description">{task.description}</div>
-        )}
+        {task.description && <div className="task-description">{task.description}</div>}
         <div className="task-footer" data-testid="task-footer">
-          {task.duration && (
-            <span className="task-duration">{task.duration}</span>
-          )}
+          {task.duration && <span className="task-duration">{task.duration}</span>}
         </div>
       </div>
     </div>
-  );
-});
+  )
+})
 
-export default TaskItem; 
+export default TaskItem

@@ -1,36 +1,28 @@
-import React from 'react';
-import {
-  Card,
-  CardContent,
-  Typography,
-  Chip,
-  Box,
-  IconButton,
-  Tooltip,
-} from '@mui/material';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import LocationOnIcon from '@mui/icons-material/LocationOn';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import { format } from 'date-fns';
+import React from 'react'
+import { Card, CardContent, Typography, Chip, Box, IconButton, Tooltip } from '@mui/material'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import LocationOnIcon from '@mui/icons-material/LocationOn'
+import EditIcon from '@mui/icons-material/Edit'
+import DeleteIcon from '@mui/icons-material/Delete'
+import { format } from 'date-fns'
 
 interface TaskCardProps {
   task: {
-    id: string;
-    title: string;
-    description?: string;
-    priority: 'low' | 'medium' | 'high' | 'urgent';
-    status: 'todo' | 'in_progress' | 'completed' | 'blocked' | 'cancelled';
-    estimatedDuration: number; // in minutes
-    environment: 'home' | 'office' | 'outdoors' | 'hybrid';
-    deadline?: Date;
+    id: string
+    title: string
+    description?: string
+    priority: 'low' | 'medium' | 'high' | 'urgent'
+    status: 'todo' | 'in_progress' | 'completed' | 'blocked' | 'cancelled'
+    estimatedDuration: number // in minutes
+    environment: 'home' | 'office' | 'outdoors' | 'hybrid'
+    deadline?: Date
     category?: {
-      name: string;
-      color: string;
-    };
-  };
-  onEdit?: (id: string) => void;
-  onDelete?: (id: string) => void;
+      name: string
+      color: string
+    }
+  }
+  onEdit?: (id: string) => void
+  onDelete?: (id: string) => void
 }
 
 const priorityColors = {
@@ -38,7 +30,7 @@ const priorityColors = {
   medium: '#F59E0B',
   high: '#EF4444',
   urgent: '#DC2626',
-};
+}
 
 const statusLabels = {
   todo: 'To Do',
@@ -46,16 +38,16 @@ const statusLabels = {
   completed: 'Completed',
   blocked: 'Blocked',
   cancelled: 'Cancelled',
-};
+}
 
 export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete }) => {
   const formatDuration = (minutes: number): string => {
-    const hours = Math.floor(minutes / 60);
-    const remainingMinutes = minutes % 60;
+    const hours = Math.floor(minutes / 60)
+    const remainingMinutes = minutes % 60
     return hours > 0
       ? `${hours}h ${remainingMinutes > 0 ? `${remainingMinutes}m` : ''}`
-      : `${minutes}m`;
-  };
+      : `${minutes}m`
+  }
 
   return (
     <Card
@@ -74,22 +66,14 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete }) =>
           <Box display="flex" alignItems="center">
             {onEdit && (
               <Tooltip title="Edit task">
-                <IconButton
-                  size="small"
-                  onClick={() => onEdit(task.id)}
-                  sx={{ ml: 1 }}
-                >
+                <IconButton size="small" onClick={() => onEdit(task.id)} sx={{ ml: 1 }}>
                   <EditIcon />
                 </IconButton>
               </Tooltip>
             )}
             {onDelete && (
               <Tooltip title="Delete task">
-                <IconButton
-                  size="small"
-                  onClick={() => onDelete(task.id)}
-                  sx={{ ml: 1 }}
-                >
+                <IconButton size="small" onClick={() => onDelete(task.id)} sx={{ ml: 1 }}>
                   <DeleteIcon />
                 </IconButton>
               </Tooltip>
@@ -98,12 +82,7 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete }) =>
         </Box>
 
         {task.description && (
-          <Typography
-            variant="body2"
-            color="text.secondary"
-            sx={{ mb: 2 }}
-            component="p"
-          >
+          <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }} component="p">
             {task.description}
           </Typography>
         )}
@@ -147,20 +126,18 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete }) =>
         >
           <Box display="flex" alignItems="center" gap={2}>
             <Box display="flex" alignItems="center">
-              <AccessTimeIcon
-                fontSize="small"
-                sx={{ mr: 0.5, color: 'text.secondary' }}
-              />
+              <AccessTimeIcon fontSize="small" sx={{ mr: 0.5, color: 'text.secondary' }} />
               <Typography variant="body2" color="text.secondary">
                 {formatDuration(task.estimatedDuration)}
               </Typography>
             </Box>
             <Box display="flex" alignItems="center">
-              <LocationOnIcon
-                fontSize="small"
-                sx={{ mr: 0.5, color: 'text.secondary' }}
-              />
-              <Typography variant="body2" color="text.secondary" sx={{ textTransform: 'capitalize' }}>
+              <LocationOnIcon fontSize="small" sx={{ mr: 0.5, color: 'text.secondary' }} />
+              <Typography
+                variant="body2"
+                color="text.secondary"
+                sx={{ textTransform: 'capitalize' }}
+              >
                 {task.environment}
               </Typography>
             </Box>
@@ -174,5 +151,5 @@ export const TaskCard: React.FC<TaskCardProps> = ({ task, onEdit, onDelete }) =>
         </Box>
       </CardContent>
     </Card>
-  );
-}; 
+  )
+}

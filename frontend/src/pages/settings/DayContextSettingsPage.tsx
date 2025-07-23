@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react'
 import {
   Box,
   Typography,
@@ -13,13 +13,13 @@ import {
   Alert,
   CircularProgress,
   Stack,
-} from '@mui/material';
-import AddIcon from '@mui/icons-material/Add';
-import EditIcon from '@mui/icons-material/Edit';
-import DeleteIcon from '@mui/icons-material/Delete';
-import WorkIcon from '@mui/icons-material/Work';
-import AccessTimeIcon from '@mui/icons-material/AccessTime';
-import EventAvailableIcon from '@mui/icons-material/EventAvailable';
+} from '@mui/material'
+import AddIcon from '@mui/icons-material/Add'
+import EditIcon from '@mui/icons-material/Edit'
+import DeleteIcon from '@mui/icons-material/Delete'
+import WorkIcon from '@mui/icons-material/Work'
+import AccessTimeIcon from '@mui/icons-material/AccessTime'
+import EventAvailableIcon from '@mui/icons-material/EventAvailable'
 import {
   fetchUserDaySettings,
   createUserDaySetting,
@@ -29,162 +29,166 @@ import {
   type UserDaySettingCreate,
   type UserDaySettingUpdate,
   type RecurrencePattern,
-} from '../../api/calendar';
-import { RecurringPatternForm } from '../../components/settings/RecurringPatternForm';
-import { useCalendarContext } from '../../context/CalendarContext';
+} from '../../api/calendar'
+import { RecurringPatternForm } from '../../components/settings/RecurringPatternForm'
+import { useCalendarContext } from '../../context/CalendarContext'
 
 const DayContextSettingsPage: React.FC = () => {
-  const { invalidateCalendarCache } = useCalendarContext();
-  const [settings, setSettings] = useState<UserDaySetting[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [editingSetting, setEditingSetting] = useState<UserDaySetting | null>(null);
-  const [saving, setSaving] = useState(false);
+  const { invalidateCalendarCache } = useCalendarContext()
+  const [settings, setSettings] = useState<UserDaySetting[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [editingSetting, setEditingSetting] = useState<UserDaySetting | null>(null)
+  const [saving, setSaving] = useState(false)
 
   const loadSettings = async () => {
-    setLoading(true);
-    setError(null);
+    setLoading(true)
+    setError(null)
     try {
-      const data = await fetchUserDaySettings();
-      setSettings(data);
+      const data = await fetchUserDaySettings()
+      setSettings(data)
     } catch (err) {
-      setError('Failed to load day context settings.');
+      setError('Failed to load day context settings.')
     } finally {
-      setLoading(false);
+      setLoading(false)
     }
-  };
+  }
 
   useEffect(() => {
-    loadSettings();
-  }, []);
+    loadSettings()
+  }, [])
 
   const handleAdd = () => {
-    setEditingSetting(null);
-    setDialogOpen(true);
-  };
+    setEditingSetting(null)
+    setDialogOpen(true)
+  }
 
   const handleEdit = (setting: UserDaySetting) => {
-    setEditingSetting(setting);
-    setDialogOpen(true);
-  };
+    setEditingSetting(setting)
+    setDialogOpen(true)
+  }
 
   const handleDelete = async (settingId: string) => {
-    setError(null);
+    setError(null)
     try {
-      await deleteUserDaySetting(settingId);
-      loadSettings();
+      await deleteUserDaySetting(settingId)
+      loadSettings()
       // Invalidate calendar cache since day context settings have changed
-      invalidateCalendarCache();
+      invalidateCalendarCache()
     } catch (err) {
-      setError('Failed to delete setting.');
+      setError('Failed to delete setting.')
     }
-  };
+  }
 
   const handleSave = async (settingData: UserDaySettingCreate | UserDaySettingUpdate) => {
-    setSaving(true);
-    setError(null);
+    setSaving(true)
+    setError(null)
     try {
       if (editingSetting) {
-        await updateUserDaySetting(editingSetting.setting_id, settingData as UserDaySettingUpdate);
+        await updateUserDaySetting(editingSetting.setting_id, settingData as UserDaySettingUpdate)
       } else {
-        await createUserDaySetting(settingData as UserDaySettingCreate);
+        await createUserDaySetting(settingData as UserDaySettingCreate)
       }
-      setDialogOpen(false);
-      loadSettings();
+      setDialogOpen(false)
+      loadSettings()
       // Invalidate calendar cache since day context settings have changed
-      invalidateCalendarCache();
+      invalidateCalendarCache()
     } catch (err) {
-      setError('Failed to save setting.');
+      setError('Failed to save setting.')
     } finally {
-      setSaving(false);
+      setSaving(false)
     }
-  };
+  }
 
   const getSettingIcon = (settingType: string) => {
     switch (settingType) {
       case 'work_environment':
-        return <WorkIcon />;
+        return <WorkIcon />
       case 'focus_slots':
-        return <AccessTimeIcon />;
+        return <AccessTimeIcon />
       case 'availability_slots':
-        return <EventAvailableIcon />;
+        return <EventAvailableIcon />
       default:
-        return <WorkIcon />;
+        return <WorkIcon />
     }
-  };
+  }
 
   const getSettingTypeLabel = (settingType: string) => {
     switch (settingType) {
       case 'work_environment':
-        return 'Work Environment';
+        return 'Work Environment'
       case 'focus_slots':
-        return 'Focus Times';
+        return 'Focus Times'
       case 'availability_slots':
-        return 'Availability';
+        return 'Availability'
       default:
-        return settingType;
+        return settingType
     }
-  };
+  }
 
   const getPatternDescription = (pattern: RecurrencePattern) => {
     switch (pattern.pattern_type) {
       case 'daily':
-        return `Every ${pattern.interval} day(s)`;
+        return `Every ${pattern.interval} day(s)`
       case 'weekly':
-        const days = pattern.days_of_week.map(d => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][d]).join(', ');
-        return `Every ${pattern.interval} week(s) on ${days}`;
+        const days = pattern.days_of_week
+          .map((d) => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][d])
+          .join(', ')
+        return `Every ${pattern.interval} week(s) on ${days}`
       case 'monthly':
-        return `Every ${pattern.interval} month(s)`;
+        return `Every ${pattern.interval} month(s)`
       case 'custom':
-        const customDays = pattern.days_of_week.map(d => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][d]).join(', ');
-        return `Custom: ${customDays}`;
+        const customDays = pattern.days_of_week
+          .map((d) => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][d])
+          .join(', ')
+        return `Custom: ${customDays}`
       default:
-        return 'Unknown pattern';
+        return 'Unknown pattern'
     }
-  };
+  }
 
   const getValueDescription = (setting: UserDaySetting) => {
     switch (setting.setting_type) {
       case 'work_environment':
-        return `Work from ${(setting.value as any).work_environment}`;
+        return `Work from ${(setting.value as any).work_environment}`
       case 'focus_slots':
-        const slots = (setting.value as any).focus_slots;
-        return `${slots.length} focus slot(s)`;
+        const slots = (setting.value as any).focus_slots
+        return `${slots.length} focus slot(s)`
       case 'availability_slots':
-        const availSlots = (setting.value as any).availability_slots;
-        return `${availSlots.length} availability slot(s)`;
+        const availSlots = (setting.value as any).availability_slots
+        return `${availSlots.length} availability slot(s)`
       default:
-        return 'Unknown setting';
+        return 'Unknown setting'
     }
-  };
+  }
 
-  const workEnvironmentSettings = settings.filter(s => s.setting_type === 'work_environment');
-  const focusSettings = settings.filter(s => s.setting_type === 'focus_slots');
-  const availabilitySettings = settings.filter(s => s.setting_type === 'availability_slots');
+  const workEnvironmentSettings = settings.filter((s) => s.setting_type === 'work_environment')
+  const focusSettings = settings.filter((s) => s.setting_type === 'focus_slots')
+  const availabilitySettings = settings.filter((s) => s.setting_type === 'availability_slots')
 
   if (loading) {
     return (
       <Box display="flex" justifyContent="center" alignItems="center" minHeight="400px">
         <CircularProgress />
       </Box>
-    );
+    )
   }
 
   return (
     <Box maxWidth="lg" mx="auto" mt={4} p={2}>
       <Box display="flex" justifyContent="space-between" alignItems="center" mb={3}>
         <Typography variant="h4">Day Context Settings</Typography>
-        <Button
-          variant="contained"
-          startIcon={<AddIcon />}
-          onClick={handleAdd}
-        >
+        <Button variant="contained" startIcon={<AddIcon />} onClick={handleAdd}>
           Add Pattern
         </Button>
       </Box>
 
-      {error && <Alert severity="error" sx={{ mb: 3 }}>{error}</Alert>}
+      {error && (
+        <Alert severity="error" sx={{ mb: 3 }}>
+          {error}
+        </Alert>
+      )}
 
       <Grid container spacing={3}>
         {/* Work Environment Section */}
@@ -198,7 +202,7 @@ const DayContextSettingsPage: React.FC = () => {
               <Typography variant="body2" color="text.secondary" mb={2}>
                 Configure recurring work environment patterns
               </Typography>
-              
+
               {workEnvironmentSettings.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   No work environment patterns configured
@@ -217,7 +221,11 @@ const DayContextSettingsPage: React.FC = () => {
                         <IconButton size="small" onClick={() => handleEdit(setting)}>
                           <EditIcon />
                         </IconButton>
-                        <IconButton size="small" color="error" onClick={() => handleDelete(setting.setting_id)}>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDelete(setting.setting_id)}
+                        >
                           <DeleteIcon />
                         </IconButton>
                       </Box>
@@ -240,7 +248,7 @@ const DayContextSettingsPage: React.FC = () => {
               <Typography variant="body2" color="text.secondary" mb={2}>
                 Configure recurring focus time patterns
               </Typography>
-              
+
               {focusSettings.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   No focus time patterns configured
@@ -259,7 +267,11 @@ const DayContextSettingsPage: React.FC = () => {
                         <IconButton size="small" onClick={() => handleEdit(setting)}>
                           <EditIcon />
                         </IconButton>
-                        <IconButton size="small" color="error" onClick={() => handleDelete(setting.setting_id)}>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDelete(setting.setting_id)}
+                        >
                           <DeleteIcon />
                         </IconButton>
                       </Box>
@@ -282,7 +294,7 @@ const DayContextSettingsPage: React.FC = () => {
               <Typography variant="body2" color="text.secondary" mb={2}>
                 Configure recurring availability patterns
               </Typography>
-              
+
               {availabilitySettings.length === 0 ? (
                 <Typography variant="body2" color="text.secondary">
                   No availability patterns configured
@@ -301,7 +313,11 @@ const DayContextSettingsPage: React.FC = () => {
                         <IconButton size="small" onClick={() => handleEdit(setting)}>
                           <EditIcon />
                         </IconButton>
-                        <IconButton size="small" color="error" onClick={() => handleDelete(setting.setting_id)}>
+                        <IconButton
+                          size="small"
+                          color="error"
+                          onClick={() => handleDelete(setting.setting_id)}
+                        >
                           <DeleteIcon />
                         </IconButton>
                       </Box>
@@ -316,9 +332,7 @@ const DayContextSettingsPage: React.FC = () => {
 
       {/* Pattern Configuration Dialog */}
       <Dialog open={dialogOpen} onClose={() => setDialogOpen(false)} maxWidth="md" fullWidth>
-        <DialogTitle>
-          {editingSetting ? 'Edit Pattern' : 'Add New Pattern'}
-        </DialogTitle>
+        <DialogTitle>{editingSetting ? 'Edit Pattern' : 'Add New Pattern'}</DialogTitle>
         <DialogContent>
           <RecurringPatternForm
             initialData={editingSetting}
@@ -329,7 +343,7 @@ const DayContextSettingsPage: React.FC = () => {
         </DialogContent>
       </Dialog>
     </Box>
-  );
-};
+  )
+}
 
-export default DayContextSettingsPage; 
+export default DayContextSettingsPage

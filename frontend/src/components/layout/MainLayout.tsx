@@ -1,16 +1,29 @@
-import React from 'react';
-import { Box, AppBar, Toolbar, IconButton, Typography, Drawer, List, ListItem, ListItemButton, ListItemIcon, ListItemText, useTheme } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import CalendarTodayIcon from '@mui/icons-material/CalendarToday';
-import TaskIcon from '@mui/icons-material/Task';
-import AssessmentIcon from '@mui/icons-material/Assessment';
-import SettingsIcon from '@mui/icons-material/Settings';
-import LogoutIcon from '@mui/icons-material/Logout';
-import { useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
-import { useAuth } from '../../context/AuthContext';
+import React from 'react'
+import {
+  Box,
+  AppBar,
+  Toolbar,
+  IconButton,
+  Typography,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemIcon,
+  ListItemText,
+  useTheme,
+} from '@mui/material'
+import MenuIcon from '@mui/icons-material/Menu'
+import CalendarTodayIcon from '@mui/icons-material/CalendarToday'
+import TaskIcon from '@mui/icons-material/Task'
+import AssessmentIcon from '@mui/icons-material/Assessment'
+import SettingsIcon from '@mui/icons-material/Settings'
+import LogoutIcon from '@mui/icons-material/Logout'
+import { useState } from 'react'
+import { Outlet, useNavigate } from 'react-router-dom'
+import { useAuth } from '../../context/AuthContext'
 
-const DRAWER_WIDTH = 240;
+const DRAWER_WIDTH = 240
 
 const menuItems = [
   { text: 'Calendar', icon: <CalendarTodayIcon />, path: '/calendar' },
@@ -18,22 +31,22 @@ const menuItems = [
   { text: 'Analytics', icon: <AssessmentIcon />, path: '/analytics' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   { text: 'Day Context', icon: <SettingsIcon />, path: '/day-context-settings' },
-];
+]
 
 export const MainLayout: React.FC = () => {
-  const [mobileOpen, setMobileOpen] = useState(false);
-  const theme = useTheme();
-  const navigate = useNavigate();
-  const { logout } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false)
+  const theme = useTheme()
+  const navigate = useNavigate()
+  const { logout } = useAuth()
 
   const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
+    setMobileOpen(!mobileOpen)
+  }
 
   const handleLogout = () => {
-    logout();
+    logout()
     // navigate('/login'); // Not needed, logout already redirects
-  };
+  }
 
   const drawer = (
     <Box sx={{ mt: 2 }}>
@@ -42,8 +55,8 @@ export const MainLayout: React.FC = () => {
           <ListItem key={item.text} disablePadding>
             <ListItemButton
               onClick={() => {
-                navigate(item.path);
-                setMobileOpen(false);
+                navigate(item.path)
+                setMobileOpen(false)
               }}
               sx={{
                 '&:hover': {
@@ -51,16 +64,14 @@ export const MainLayout: React.FC = () => {
                 },
               }}
             >
-              <ListItemIcon sx={{ color: theme.palette.primary.main }}>
-                {item.icon}
-              </ListItemIcon>
+              <ListItemIcon sx={{ color: theme.palette.primary.main }}>{item.icon}</ListItemIcon>
               <ListItemText primary={item.text} />
             </ListItemButton>
           </ListItem>
         ))}
       </List>
     </Box>
-  );
+  )
 
   return (
     <Box sx={{ display: 'flex', minHeight: '100vh' }}>
@@ -92,10 +103,7 @@ export const MainLayout: React.FC = () => {
         </Toolbar>
       </AppBar>
 
-      <Box
-        component="nav"
-        sx={{ width: { sm: DRAWER_WIDTH }, flexShrink: { sm: 0 } }}
-      >
+      <Box component="nav" sx={{ width: { sm: DRAWER_WIDTH }, flexShrink: { sm: 0 } }}>
         <Drawer
           variant="temporary"
           open={mobileOpen}
@@ -142,5 +150,5 @@ export const MainLayout: React.FC = () => {
         <Outlet />
       </Box>
     </Box>
-  );
-}; 
+  )
+}

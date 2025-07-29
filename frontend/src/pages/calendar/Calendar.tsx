@@ -460,7 +460,7 @@ export const MyCalendar = () => {
         nowIndicator={true}
         scrollTime={'09:00:00'}
         headerToolbar={{
-          left: 'prev,next',
+          left: 'prev,next,today',
           center: 'title',
           right: 'timeGridWeek,timeGridDay',
         }}

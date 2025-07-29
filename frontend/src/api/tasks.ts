@@ -110,6 +110,7 @@ export type ScheduledEvent = {
   start: string
   end: string
   category?: string
+  color?: string
   task_id?: string
   // ...other fields as needed
 }

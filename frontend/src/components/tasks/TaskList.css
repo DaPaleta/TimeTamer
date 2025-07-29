@@ -69,11 +69,23 @@
   margin-left: 8px;
   font-size: 12px;
 }
+
+.task-list-all-sections {
+  height: 100%;
+  overflow-y: auto;
+}
+
+.task-list-section-body {
+  padding: 3px;
+  border-radius: 8px;
+}
+
 .task-item {
-  background: #fff;
+  background-color: inherit;
+  background-color: rgba(255, 255, 255, 0.7);
   border-radius: 8px;
   padding: 12px;
-  margin-bottom: 8px;
+  margin-bottom: 4px;
   box-shadow: 0 1px 3px #e0e0e0;
   display: flex;
   align-items: flex-start;

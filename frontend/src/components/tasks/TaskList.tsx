@@ -255,55 +255,61 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
           </Tooltip>
         </ToggleButtonGroup>
       </div>
-      {Object.entries(groupedTasks).map(([sectionName, tasks]) => (
-        <div className="task-section" key={sectionName} data-section-name={sectionName}>
-          <div className="section-header">
-            <span>{sectionName}</span>
-            <span className="badge">{tasks.length}</span>
-            <a href="#" className="task-section-collapse">
-              ▲
-            </a>
+      <div className="task-list-all-sections">
+        {Object.entries(groupedTasks).map(([sectionName, tasks]) => (
+          <div className="task-section" key={sectionName} data-section-name={sectionName}>
+            <div className="section-header">
+              <span>{sectionName}</span>
+              <span className="badge">{tasks.length}</span>
+              <a href="#" className="task-section-collapse">
+                ▲
+              </a>
+            </div>
+            <ReactSortable
+              className="task-list-section-body"
+              style={{
+                backgroundColor: sortKey === 'category' ? tasks[0].category?.color_hex : undefined,
+              }}
+              list={memoizedTasksBySection[sectionName]}
+              setList={(newItems: SortableTask[]) => {
+                // Only update if the list actually changed
+                const prevList = memoizedTasksBySection[sectionName]
+                const isSame =
+                  prevList.length === newItems.length &&
+                  prevList.every((item, i) => item.task_id === newItems[i].task_id)
+                if (isSame) {
+                  return
+                }
+                const newTasks: TaskType[] = newItems.map((item) => {
+                  const { id, ...rest } = item
+                  return { ...rest, task_id: item.task_id ?? id }
+                })
+                handleTaskMove(sectionName, newTasks)
+              }}
+              group={{
+                name: 'tasks',
+                pull: sortKey === 'deadline' ? false : true,
+                put: sortKey === 'deadline' ? false : true,
+              }}
+              sort={sortKey !== 'deadline'}
+              animation={150}
+              ghostClass="sortable-ghost"
+              chosenClass="sortable-chosen"
+              dragClass="sortable-drag"
+              onAdd={sortKey !== 'deadline' ? handleSortableEvent : undefined}
+              onRemove={sortKey !== 'deadline' ? handleSortableEvent : undefined}
+              disabled={sortKey === 'deadline'}
+            >
+              {tasks.map((task: TaskType) => (
+                <TaskItem
+                  key={task.task_id}
+                  task={{ ...task, duration: formatDuration(task.estimated_duration_minutes) }}
+                />
+              ))}
+            </ReactSortable>
           </div>
-          <ReactSortable
-            list={memoizedTasksBySection[sectionName]}
-            setList={(newItems: SortableTask[]) => {
-              // Only update if the list actually changed
-              const prevList = memoizedTasksBySection[sectionName]
-              const isSame =
-                prevList.length === newItems.length &&
-                prevList.every((item, i) => item.task_id === newItems[i].task_id)
-              if (isSame) {
-                return
-              }
-              const newTasks: TaskType[] = newItems.map((item) => {
-                const { id, ...rest } = item
-                return { ...rest, task_id: item.task_id ?? id }
-              })
-              handleTaskMove(sectionName, newTasks)
-            }}
-            group={{
-              name: 'tasks',
-              pull: sortKey === 'deadline' ? false : true,
-              put: sortKey === 'deadline' ? false : true,
-            }}
-            sort={sortKey !== 'deadline'}
-            animation={150}
-            ghostClass="sortable-ghost"
-            chosenClass="sortable-chosen"
-            dragClass="sortable-drag"
-            onAdd={sortKey !== 'deadline' ? handleSortableEvent : undefined}
-            onRemove={sortKey !== 'deadline' ? handleSortableEvent : undefined}
-            disabled={sortKey === 'deadline'}
-          >
-            {tasks.map((task: TaskType) => (
-              <TaskItem
-                key={task.task_id}
-                task={{ ...task, duration: formatDuration(task.estimated_duration_minutes) }}
-              />
-            ))}
-          </ReactSortable>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   )
 }

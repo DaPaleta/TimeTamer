@@ -16,6 +16,7 @@ export interface ScheduledEvent {
   start: string
   end: string
   category?: string
+  color?: string
   task_id?: string
   validation?: {
     valid: boolean

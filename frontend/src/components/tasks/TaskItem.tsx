@@ -7,7 +7,7 @@ interface TaskItemProps {
 
 const TaskItem: React.FC<TaskItemProps> = memo(({ task }) => {
   const getPriorityColor = (priority?: string) => {
-    switch (priority) {
+    switch (priority?.toLocaleLowerCase()) {
       case 'urgent':
         return '#f44336'
       case 'high':
@@ -27,8 +27,11 @@ const TaskItem: React.FC<TaskItemProps> = memo(({ task }) => {
       data-title={task.title}
       data-duration={task.duration}
       data-task-id={task.task_id}
+      data-color={task.category?.color_hex}
+      data-category={task.category?.name}
       draggable={true}
       data-testid="task-item"
+      // style={{ backgroundColor: task.category?.color_hex }}
     >
       <div className="task-content" data-testid="task-content">
         <div className="task-header" data-testid="task-header">

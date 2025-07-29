@@ -3,6 +3,8 @@ import React, { useState, useCallback, useRef, useMemo } from 'react'
 import { ReactSortable } from 'react-sortablejs'
 import './TaskList.css' // Custom styles
 import TaskItem from './TaskItem'
+import Disclosure from './Disclosure'
+import NewTaskDialog from './NewTaskDialog'
 import ToggleButton from '@mui/material/ToggleButton'
 import ToggleButtonGroup from '@mui/material/ToggleButtonGroup'
 import Tooltip from '@mui/material/Tooltip'
@@ -10,8 +12,8 @@ import CategoryIcon from '@mui/icons-material/Category'
 import FlagIcon from '@mui/icons-material/Flag'
 import EventIcon from '@mui/icons-material/Event'
 import ScheduleIcon from '@mui/icons-material/Schedule'
-import { updateTask } from '../../api/tasks'
-import type { Task as TaskType } from '../../api/tasks'
+import { updateTask, fetchCategories } from '../../api/tasks'
+import type { Task as TaskType, Category } from '../../api/tasks'
 
 interface SortableEvent {
   type: string
@@ -46,6 +48,17 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
     [tasksBySortingKey]
   )
   const [baseTasks, setBaseTasks] = useState<TaskType[]>(initialTasks)
+
+  // NewTaskDialog state
+  const [dialogOpen, setDialogOpen] = useState(false)
+  const [prefilledCategory, setPrefilledCategory] = useState<string | undefined>()
+  const [prefilledPriority, setPrefilledPriority] = useState<
+    'low' | 'medium' | 'high' | 'urgent' | undefined
+  >()
+  const [prefilledStatus, setPrefilledStatus] = useState<
+    'todo' | 'in_progress' | 'completed' | 'blocked' | 'cancelled' | undefined
+  >()
+  const [categories, setCategories] = useState<Category[]>([])
 
   // Keep baseTasks in sync with tasksBySortingKey prop
   React.useEffect(() => {
@@ -208,6 +221,65 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
     console.log('Fetched tasks from backend:', initialTasks)
   }, [initialTasks])
 
+  // Load categories when component mounts
+  React.useEffect(() => {
+    fetchCategories()
+      .then(setCategories)
+      .catch(() => setCategories([]))
+  }, [])
+
+  // Handle opening the NewTaskDialog with pre-filled category
+  const handleAddTask = (sectionName: string) => {
+    // Reset all pre-filled values
+    setPrefilledCategory(undefined)
+    setPrefilledPriority(undefined)
+    setPrefilledStatus(undefined)
+
+    if (sortKey === 'category' && sectionName !== 'Uncategorized') {
+      // Find the category by name
+      const category = categories.find((cat) => cat.name === sectionName)
+      setPrefilledCategory(category?.category_id)
+    } else if (sortKey === 'priority') {
+      // Map priority section names to priority values
+      const priorityMap: { [key: string]: 'low' | 'medium' | 'high' | 'urgent' } = {
+        Low: 'low',
+        Medium: 'medium',
+        High: 'high',
+        Urgent: 'urgent',
+      }
+      const priority = priorityMap[sectionName]
+      if (priority) {
+        setPrefilledPriority(priority)
+      }
+    } else if (sortKey === 'status') {
+      // Map status section names to status values
+      const statusMap: {
+        [key: string]: 'todo' | 'in_progress' | 'completed' | 'blocked' | 'cancelled'
+      } = {
+        'To Do': 'todo',
+        'In Progress': 'in_progress',
+        Completed: 'completed',
+        Blocked: 'blocked',
+        Cancelled: 'cancelled',
+      }
+      const status = statusMap[sectionName]
+      if (status) {
+        setPrefilledStatus(status)
+      }
+    }
+    setDialogOpen(true)
+  }
+
+  // Handle task creation
+  const handleTaskCreated = (task: TaskType) => {
+    // Add the new task to baseTasks
+    setBaseTasks((prev) => [...prev, task])
+    setDialogOpen(false)
+    setPrefilledCategory(undefined)
+    setPrefilledPriority(undefined)
+    setPrefilledStatus(undefined)
+  }
+
   // Memoize the tasks array for each section to prevent unnecessary setList calls
   const memoizedTasksBySection = React.useMemo(() => {
     const result: { [sectionName: string]: SortableTask[] } = {}
@@ -257,14 +329,16 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
       </div>
       <div className="task-list-all-sections">
         {Object.entries(groupedTasks).map(([sectionName, tasks]) => (
-          <div className="task-section" key={sectionName} data-section-name={sectionName}>
-            <div className="section-header">
-              <span>{sectionName}</span>
-              <span className="badge">{tasks.length}</span>
-              <a href="#" className="task-section-collapse">
-                ▲
-              </a>
-            </div>
+          <Disclosure
+            key={sectionName}
+            title={sectionName}
+            badge={tasks.length}
+            defaultOpen={true}
+            className="task-section"
+            data-section-name={sectionName}
+            showAddButton={sortKey !== 'deadline'}
+            onAddClick={() => handleAddTask(sectionName)}
+          >
             <ReactSortable
               className="task-list-section-body"
               style={{
@@ -307,9 +381,23 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
                 />
               ))}
             </ReactSortable>
-          </div>
+          </Disclosure>
         ))}
       </div>
+
+      <NewTaskDialog
+        open={dialogOpen}
+        onClose={() => {
+          setDialogOpen(false)
+          setPrefilledCategory(undefined)
+          setPrefilledPriority(undefined)
+          setPrefilledStatus(undefined)
+        }}
+        onTaskCreated={handleTaskCreated}
+        prefilledCategoryId={prefilledCategory}
+        prefilledPriority={prefilledPriority}
+        prefilledStatus={prefilledStatus}
+      />
     </div>
   )
 }

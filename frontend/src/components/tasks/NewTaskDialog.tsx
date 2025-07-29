@@ -33,6 +33,9 @@ interface NewTaskDialogProps {
   onTaskCreated?: (task: Task) => void
   task?: Task
   onTaskUpdated?: (task: Task) => void
+  prefilledCategoryId?: string
+  prefilledPriority?: 'low' | 'medium' | 'high' | 'urgent'
+  prefilledStatus?: 'todo' | 'in_progress' | 'completed' | 'blocked' | 'cancelled'
 }
 
 interface TaskInput extends Omit<TaskInputBase, 'deadline' | 'recurring_pattern'> {
@@ -48,6 +51,9 @@ export default function NewTaskDialog({
   onTaskCreated,
   task,
   onTaskUpdated,
+  prefilledCategoryId,
+  prefilledPriority,
+  prefilledStatus,
 }: NewTaskDialogProps) {
   const [categories, setCategories] = useState<Category[]>([])
   const [loadingCategories, setLoadingCategories] = useState(false)
@@ -101,19 +107,30 @@ export default function NewTaskDialog({
           is_recurring: !!task.is_recurring,
           recurring_pattern: task.recurring_pattern
             ? {
-                ...task.recurring_pattern,
+                frequency: task.recurring_pattern.frequency || '',
+                interval: task.recurring_pattern.interval || 1,
+                days_of_week: task.recurring_pattern.days_of_week || [],
                 end_date: task.recurring_pattern.end_date
                   ? new Date(task.recurring_pattern.end_date)
-                  : undefined,
+                  : null,
               }
             : undefined,
+          status:
+            (task.status?.toLowerCase() as
+              | 'todo'
+              | 'in_progress'
+              | 'completed'
+              | 'blocked'
+              | 'cancelled') || 'todo',
         })
       } else {
+        // Reset form for new task
         setForm({
           title: '',
           description: '',
-          category_id: undefined,
-          priority: 'medium',
+          category_id: prefilledCategoryId || undefined,
+          priority: prefilledPriority || 'medium',
+          status: prefilledStatus || 'todo',
           estimated_duration_minutes: 30,
           deadline: null,
           fitting_environments: [],
@@ -127,7 +144,7 @@ export default function NewTaskDialog({
         })
       }
     }
-  }, [open, task])
+  }, [open, task, prefilledCategoryId, prefilledPriority, prefilledStatus])
 
   const handleChange = (field: keyof TaskInput, value: unknown) => {
     setForm((prev) => ({ ...prev, [field]: value }))

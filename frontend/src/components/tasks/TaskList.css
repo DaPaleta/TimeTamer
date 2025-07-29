@@ -1,3 +1,5 @@
+@import './Disclosure.css';
+
 .task-list-container {
   background: #fafbff;
   border-radius: 16px;
@@ -32,50 +34,6 @@
 .sorting-controls {
   margin: 8px 0 16px 0;
   flex-shrink: 0;
-}
-.task-section {
-  margin-bottom: 12px;
-  border: 2px solid transparent;
-  border-radius: 12px;
-  padding: 8px;
-  transition: all 0.2s ease;
-}
-
-.task-section.sortable-ghost {
-  border-color: #2196f3;
-  background: rgba(33, 150, 243, 0.1);
-}
-.section-header {
-  display: flex;
-  align-items: center;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-.task-section-collapse {
-  margin-left: auto;
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 16px;
-  color: #888;
-  transition: color 0.2s;
-  padding: 2px 6px;
-  line-height: 1;
-  display: flex;
-  align-items: center;
-}
-.task-section-collapse:hover {
-  color: #3730a3;
-  background: #f3f4f6;
-  border-radius: 4px;
-}
-.badge {
-  background: #e0e7ff;
-  color: #3730a3;
-  border-radius: 8px;
-  padding: 2px 8px;
-  margin-left: 8px;
-  font-size: 12px;
 }
 
 .task-list-all-sections {
@@ -179,7 +137,7 @@
 }
 
 /* Cross-category drop zone styles */
-.task-section.sortable-put {
+.disclosure.sortable-put {
   border-color: #4caf50;
   background: rgba(76, 175, 80, 0.1);
 }

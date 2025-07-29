@@ -5,6 +5,7 @@ import { fetchTasks } from '../../api/tasks'
 import type { Task } from '../../api/tasks'
 import TaskList from '../../components/tasks/TaskList'
 import { ThirdPartyDraggable } from '@fullcalendar/interaction/index.js'
+import './CalendarPage.css'
 
 const CalendarPage = () => {
   const taskListRef = useRef<HTMLDivElement>(null)
@@ -97,16 +98,18 @@ const CalendarPage = () => {
         message={errorMessage && showError ? errorMessage : ''}
         onClose={() => setShowError(false)}
       />
-      <div style={{ display: 'flex', gap: '20px' }}>
-        <div style={{ flex: '1' }}>
+      <div className="calendar-page-layout">
+        <div className="calendar-container">
           <h2>Calendar</h2>
-          <MyCalendar />
+          <div className="calendar-wrapper">
+            <MyCalendar />
+          </div>
         </div>
-        <div style={{ flex: '0 0 300px' }} ref={taskListRef}>
+        <div className="task-list-wrapper" ref={taskListRef}>
           <h2>Unscheduled Tasks</h2>
-          <div style={{ padding: '20px', textAlign: 'center' }}>
+          <div className="task-list-content">
             {unscheduledTasks.length === 0 && !unscheduledLoading ? (
-              <div>No unscheduled tasks.</div>
+              <div className="no-tasks-message">No unscheduled tasks.</div>
             ) : (
               <TaskList tasksBySortingKey={unscheduledTasksBySortingKey} />
             )}
@@ -127,62 +130,17 @@ const CalendarPageWithProvider = () => (
 // Simple loading spinner overlay
 const SpinnerOverlay = ({ show }: { show: boolean }) =>
   show ? (
-    <div
-      style={{
-        position: 'fixed',
-        top: 0,
-        left: 0,
-        width: '100vw',
-        height: '100vh',
-        background: 'rgba(255,255,255,0.5)',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-      }}
-    >
-      <div
-        style={{
-          border: '4px solid #f3f3f3',
-          borderRadius: '50%',
-          borderTop: '4px solid #3498db',
-          width: 40,
-          height: 40,
-          animation: 'spin 1s linear infinite',
-        }}
-      />
-      <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+    <div className="spinner-overlay">
+      <div className="spinner" />
     </div>
   ) : null
 
 // Simple error toast
 const ErrorToast = ({ message, onClose }: { message: string; onClose: () => void }) =>
   message ? (
-    <div
-      style={{
-        position: 'fixed',
-        bottom: 30,
-        right: 30,
-        background: '#e74c3c',
-        color: 'white',
-        padding: '16px 24px',
-        borderRadius: 8,
-        zIndex: 10000,
-        boxShadow: '0 2px 8px rgba(0,0,0,0.15)',
-      }}
-    >
+    <div className="error-toast">
       <span>{message}</span>
-      <button
-        onClick={onClose}
-        style={{
-          marginLeft: 16,
-          background: 'none',
-          border: 'none',
-          color: 'white',
-          fontWeight: 'bold',
-          cursor: 'pointer',
-        }}
-      >
+      <button onClick={onClose} className="error-toast-close">
         ×
       </button>
     </div>

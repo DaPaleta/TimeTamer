@@ -184,7 +184,7 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
               // Remove the moved task from its old place
               const filtered = prevBaseTasks.filter((t) => t.task_id !== movedTaskId)
               // Place it at the end of the new section, with updated category/category_id
-              let updatedTask = { ...movedTask, ...updates }
+              let updatedTask = { ...movedTask, ...updates } as TaskType
               if (sortKey === 'category') {
                 updatedTask = { ...updatedTask, category: newCategoryObj }
               }
@@ -225,7 +225,7 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
           <button className="filter-btn">☰</button>
         </div>
       </div>
-      <div className="sorting-controls" style={{ margin: '8px 0 16px 0' }}>
+      <div className="sorting-controls">
         <ToggleButtonGroup
           value={sortKey}
           exclusive

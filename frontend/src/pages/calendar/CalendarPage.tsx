@@ -58,6 +58,7 @@ const CalendarPage = () => {
             title: eventEl.getAttribute('data-title'),
             duration: eventEl.getAttribute('data-duration'),
             taskId: eventEl.getAttribute('data-task-id'),
+            color: eventEl.getAttribute('data-color'),
           }
         },
       })

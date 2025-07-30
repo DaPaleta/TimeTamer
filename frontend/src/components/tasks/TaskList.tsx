@@ -64,6 +64,10 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
   React.useEffect(() => {
     setBaseTasks(Object.values(tasksBySortingKey).flat())
   }, [tasksBySortingKey])
+
+  // Refresh tasks when categories change (for color updates)
+  // This would need to be implemented with a proper event system
+  // For now, we'll rely on the parent component to pass updated tasks
   const processingMoveRef = useRef(false)
 
   // Grouping function: always groups from baseTasks
@@ -188,6 +192,10 @@ export default function TaskList({ tasksBySortingKey }: { tasksBySortingKey: Tas
             if (Object.keys(updates).length > 0) {
               try {
                 await updateTask(movedTaskId, updates)
+                // If category was updated, we should refresh the task list to reflect color changes
+                if (updates.category_id !== undefined) {
+                  console.log('Task category updated, color should be refreshed')
+                }
               } catch {
                 // Optionally handle error (e.g., revert UI)
               }

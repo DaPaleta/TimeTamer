@@ -43,6 +43,9 @@ const CalendarPage = () => {
       .finally(() => setUnscheduledLoading(false))
   }, [scheduledEvents])
 
+  // Note: Category color changes would need to trigger a refresh of unscheduled tasks
+  // This could be implemented with a proper event system or by refreshing when needed
+
   // Initialize ThirdPartyDraggable for the task list after unscheduled tasks are loaded
   React.useEffect(() => {
     if (taskListRef.current && unscheduledTasks.length > 0) {

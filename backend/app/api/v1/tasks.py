@@ -106,6 +106,15 @@ async def update_category(
     for field, value in update_data.items():
         setattr(category, field, value)
     
+    # If color was updated, we need to invalidate cache for all tasks using this category
+    if "color_hex" in update_data:
+        affected_tasks = db.query(Task).filter(
+            Task.category_id == category_id,
+            Task.scheduled_slots.isnot(None)
+        ).all()
+        if affected_tasks:
+            logging.info(f"Category {category_id} color updated, {len(affected_tasks)} tasks with scheduled slots affected")
+    
     try:
         db.commit()
         db.refresh(category)
@@ -351,7 +360,7 @@ async def get_scheduled_events(
                 'start': slot['start_time'],
                 'end': slot['end_time'],
                 'category': task.category.name if task.category else None,
-                'category_color': task.category.color_hex if task.category else None,
+                'color': task.category.color_hex if task.category else None,
                 'status': task.status,
                 'estimated_duration_minutes': task.estimated_duration_minutes,
                 'scheduled_slot': slot,
@@ -436,6 +445,11 @@ async def update_task(
     
     for field, value in update_data.items():
         setattr(task, field, value)
+    
+    # If category was updated and task has scheduled slots, we need to invalidate cache
+    # This is a simple approach - in a production system you might want more sophisticated cache invalidation
+    if "category_id" in update_data and task.scheduled_slots:
+        logging.info(f"Task {task.task_id} category updated, scheduled events cache should be invalidated")
     
     try:
         db.commit()

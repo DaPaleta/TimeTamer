@@ -18,11 +18,13 @@ export interface ScheduledEvent {
   category?: string
   color?: string
   task_id?: string
+  status?: string
+  estimated_duration_minutes?: number
+  scheduled_slot?: { start_time: string; end_time: string; calendar_day_id: string | null }
   validation?: {
     valid: boolean
     reasons: string[]
   }
-  // ...other fields as needed
 }
 
 interface CalendarContextType {
@@ -76,9 +78,17 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
         fetchCalendarContext(range.start, range.end),
       ])
       console.log('[CalendarContext] setScheduledEvents', events)
-      setScheduledEvents(events)
+
+      // Map color property to backgroundColor for FullCalendar compatibility
+      const mappedEvents = events.map((event) => ({
+        ...event,
+        backgroundColor: event.color || '#3B82F6', // Default blue if no color
+        borderColor: event.color || '#3B82F6',
+      }))
+
+      setScheduledEvents(mappedEvents)
       setCalendarContext(contextResponse.days)
-      calendarDataCache.set(cacheKey, { events, context: contextResponse.days })
+      calendarDataCache.set(cacheKey, { events: mappedEvents, context: contextResponse.days })
     } catch (err) {
       let message = 'Failed to load calendar data.'
       if (err instanceof Error) message += ` ${err.message}`
@@ -93,6 +103,9 @@ export const CalendarProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     console.log('[CalendarContext] Invalidating calendar cache')
     calendarDataCache.clear()
   }, [])
+
+  // Note: Cache invalidation for task category changes would need to be implemented
+  // when task categories are updated in the UI
 
   const setDateRangeLogged = (range: DateRange) => {
     console.log('[CalendarContext] setDateRange', range)

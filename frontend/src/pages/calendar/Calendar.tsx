@@ -393,6 +393,9 @@ export const MyCalendar = () => {
     const eventSource = extendedProps.source as string
     const isDayContextEvent = eventType === 'work_environment' || eventType === 'focus_slot'
 
+    // Get color from event if available (for scheduled events)
+    const eventColor = event.backgroundColor
+
     const handleRightClick = (e: React.MouseEvent) => {
       e.preventDefault()
       e.stopPropagation()
@@ -423,7 +426,11 @@ export const MyCalendar = () => {
       <div
         style={{
           border: isInvalid ? '2px solid #e74c3c' : undefined,
-          background: isInvalid ? 'rgba(231,76,60,0.1)' : undefined,
+          background: isInvalid
+            ? 'rgba(231,76,60,0.1)'
+            : eventColor
+              ? `${eventColor}20`
+              : undefined,
           borderRadius: 4,
           padding: 2,
           position: 'relative',

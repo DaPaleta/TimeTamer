@@ -112,7 +112,13 @@ export type ScheduledEvent = {
   category?: string
   color?: string
   task_id?: string
-  // ...other fields as needed
+  status?: string
+  estimated_duration_minutes?: number
+  scheduled_slot?: { start_time: string; end_time: string; calendar_day_id: string | null }
+  validation?: {
+    valid: boolean
+    reasons: string[]
+  }
 }
 
 export async function createTask(task: TaskInput) {

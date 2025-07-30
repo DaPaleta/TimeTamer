@@ -31,7 +31,6 @@ const TaskItem: React.FC<TaskItemProps> = memo(({ task }) => {
       data-category={task.category?.name}
       draggable={true}
       data-testid="task-item"
-      // style={{ backgroundColor: task.category?.color_hex }}
     >
       <div className="task-content" data-testid="task-content">
         <div className="task-header" data-testid="task-header">

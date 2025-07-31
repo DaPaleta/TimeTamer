@@ -13,6 +13,7 @@ import { AuthProvider, useAuth } from './context/AuthContext'
 import { CalendarProvider } from './context/CalendarContext'
 import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
+import SchedulingRulesPage from './pages/settings/SchedulingRulesPage'
 
 // Placeholder components for other routes
 const AnalyticsPage = () => <div>Analytics Page (Coming Soon)</div>
@@ -41,6 +42,7 @@ export const App: React.FC = () => {
                     <Route path="analytics" element={<AnalyticsPage />} />
                     <Route path="settings" element={<CategoryManagerPage />} />
                     <Route path="day-context-settings" element={<DayContextSettingsPage />} />
+                    <Route path="rules" element={<SchedulingRulesPage />} />
                     <Route path="planner" element={<div>Planner Page (protected)</div>} />
                   </Route>
                 </Route>

@@ -18,6 +18,7 @@ import DailyOverrideDialog from '../../components/calendar/DailyOverrideDialog'
 import TaskDetailsDialog from '../../components/calendar/TaskDetailsDialog'
 import { updateCalendarDay, createCalendarDay } from '../../api/calendar'
 import type { FocusSlot } from '../../api/calendar'
+import { validatePlacement } from '../../api/scheduling'
 import '../../styles/dayContextEvents.css'
 import '../../styles/dailyOverrideDialog.css'
 
@@ -282,23 +283,66 @@ export const MyCalendar = () => {
       (info.event.extendedProps.taskId as string) || (info.event.extendedProps.task_id as string)
     const start = info.event.start
     const end = info.event.end
+
     if (!taskId || !start || !end) {
       alert(
         `Could not schedule task: missing data\n\tEvent: ${info.event}\n\tTask ID: ${taskId}\n\tStart: ${start}\n\tEnd: ${end}`
       )
       return
     }
+
     // Format times as ISO strings
     const startTime = start.toISOString()
     const endTime = end.toISOString()
-    // Add scheduled slot to the task
+
     try {
+      // Validate placement before scheduling
+      const validation = await validatePlacement(taskId, startTime, endTime)
+
+      if (!validation.is_valid) {
+        // Show validation errors
+        const errorMessage = validation.block_reasons.join('\n')
+        alert(`Cannot schedule task:\n${errorMessage}`)
+
+        // If there are suggestions, show them
+        if (validation.suggestions.length > 0) {
+          const suggestion = validation.suggestions[0]
+          const useSuggestion = confirm(
+            `Would you like to use the suggested time instead?\n${suggestion.reason}`
+          )
+          if (useSuggestion) {
+            await updateTask(taskId, {
+              scheduled_slots: [
+                {
+                  start_time: suggestion.start_time,
+                  end_time: suggestion.end_time,
+                  calendar_day_id: suggestion.calendar_day_id || null,
+                },
+              ],
+            })
+            fetchAndStoreCalendarData(dateRange)
+            return
+          }
+        }
+        return
+      }
+
+      // Show warnings if any
+      if (validation.warnings.length > 0) {
+        const warningMessage = validation.warnings.join('\n')
+        const proceed = confirm(`Warning:\n${warningMessage}\n\nProceed anyway?`)
+        if (!proceed) return
+      }
+
+      // Schedule the task
       await updateTask(taskId, {
         scheduled_slots: [{ start_time: startTime, end_time: endTime, calendar_day_id: null }],
       })
+
       // Refresh calendar data and unscheduled tasks
       fetchAndStoreCalendarData(dateRange)
-    } catch {
+    } catch (error) {
+      console.error('Scheduling error:', error)
       alert('Failed to schedule task.')
     }
   }
@@ -325,6 +369,7 @@ export const MyCalendar = () => {
     const taskId = (event.extendedProps.taskId as string) || (event.extendedProps.task_id as string)
     const start = event.start
     const end = event.end
+
     if (!taskId || !start || !end) {
       alert(
         `Could not schedule task: missing data\n\tEvent: ${event}\n\tTask ID: ${taskId}\n\tStart: ${start}\n\tEnd: ${end}`
@@ -332,7 +377,29 @@ export const MyCalendar = () => {
       info.revert()
       return
     }
+
     try {
+      // Validate placement before updating
+      const validation = await validatePlacement(taskId, start.toISOString(), end.toISOString())
+
+      if (!validation.is_valid) {
+        // Show validation errors
+        const errorMessage = validation.block_reasons.join('\n')
+        alert(`Cannot move task:\n${errorMessage}`)
+        info.revert()
+        return
+      }
+
+      // Show warnings if any
+      if (validation.warnings.length > 0) {
+        const warningMessage = validation.warnings.join('\n')
+        const proceed = confirm(`Warning:\n${warningMessage}\n\nProceed anyway?`)
+        if (!proceed) {
+          info.revert()
+          return
+        }
+      }
+
       await updateTask(taskId, {
         scheduled_slots: [
           {
@@ -343,7 +410,8 @@ export const MyCalendar = () => {
         ],
       })
       fetchAndStoreCalendarData(dateRange)
-    } catch {
+    } catch (error) {
+      console.error('Event drop error:', error)
       alert('Failed to update scheduled task.')
       info.revert()
     }

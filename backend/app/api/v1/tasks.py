@@ -16,6 +16,7 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.exception_handlers import request_validation_exception_handler
 from datetime import datetime, timedelta, timezone
 from dateutil import parser as date_parser
+from ...services.day_context import DayContextService
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
 
@@ -271,26 +272,95 @@ def slot_overlaps(slot_start, slot_end, range_start, range_end):
     return slot_start < range_end and slot_end > range_start
 
 def is_slot_within_availability(slot_start, slot_end, availability_slots):
+    if not availability_slots:
+        return True  # If no availability slots defined, assume always available
+    
+    # Convert slot times to local time for comparison with availability slots
+    # slot_start and slot_end are datetime objects, we need to extract the time part
+    slot_start_time = slot_start.time()
+    slot_end_time = slot_end.time()
+    
     for slot in availability_slots:
         try:
-            avail_start = datetime.strptime(slot['start_time'], '%H:%M').time()
-            avail_end = datetime.strptime(slot['end_time'], '%H:%M').time()
-            if slot['status'] == 'available':
-                # Check if the scheduled slot is fully within this available slot
-                if (slot_start.time() >= avail_start and slot_end.time() <= avail_end):
+            # Handle both dictionary slots (UserCalendarDay) and Pydantic model slots (CalendarDayResponse)
+            if hasattr(slot, 'status'):  # Pydantic model
+                if slot.status == "available":
+                    avail_start = datetime.strptime(slot.start_time, '%H:%M').time()
+                    avail_end = datetime.strptime(slot.end_time, '%H:%M').time()
+                else:
+                    continue
+            else:  # Dictionary
+                if slot.get('status') == 'available':
+                    avail_start = datetime.strptime(slot['start_time'], '%H:%M').time()
+                    avail_end = datetime.strptime(slot['end_time'], '%H:%M').time()
+                else:
+                    continue
+            
+            # Check if the scheduled slot is fully within this available slot
+            # Note: We're comparing time objects, so we need to handle the case where
+            # the slot might span midnight (e.g., 23:00 to 01:00)
+            if avail_start <= avail_end:
+                # Normal case: slot doesn't span midnight
+                if slot_start_time >= avail_start and slot_end_time <= avail_end:
                     return True
-        except Exception:
+            else:
+                # Slot spans midnight (e.g., 23:00 to 01:00)
+                if slot_start_time >= avail_start or slot_end_time <= avail_end:
+                    return True
+        except Exception as e:
+            logging.warning(f"Error processing availability slot {slot}: {e}")
             continue
     return False
 
 def is_slot_within_focus(slot_start, slot_end, focus_slots):
+    if not focus_slots:
+        return False  # If no focus slots defined, assume not within focus time
+    
+    # Convert slot times to local time for comparison with focus slots
+    slot_start_time = slot_start.time()
+    slot_end_time = slot_end.time()
+    
     for slot in focus_slots:
         try:
-            focus_start = datetime.strptime(slot['start_time'], '%H:%M').time()
-            focus_end = datetime.strptime(slot['end_time'], '%H:%M').time()
-            if slot_overlaps(slot_start, slot_end, datetime.combine(slot_start.date(), focus_start), datetime.combine(slot_start.date(), focus_end)):
-                return True
-        except Exception:
+            # Handle both dictionary slots (UserCalendarDay) and Pydantic model slots (CalendarDayResponse)
+            if hasattr(slot, 'start_time'):  # Pydantic model
+                focus_start = datetime.strptime(slot.start_time, '%H:%M').time()
+                focus_end = datetime.strptime(slot.end_time, '%H:%M').time()
+            else:  # Dictionary
+                focus_start = datetime.strptime(slot['start_time'], '%H:%M').time()
+                focus_end = datetime.strptime(slot['end_time'], '%H:%M').time()
+            
+            # Check if the scheduled slot overlaps with this focus slot
+            # We need to handle the case where slots might span midnight
+            if focus_start <= focus_end:
+                # Normal case: focus slot doesn't span midnight
+                if slot_overlaps(
+                    datetime.combine(slot_start.date(), slot_start_time),
+                    datetime.combine(slot_start.date(), slot_end_time),
+                    datetime.combine(slot_start.date(), focus_start),
+                    datetime.combine(slot_start.date(), focus_end)
+                ):
+                    return True
+            else:
+                # Focus slot spans midnight (e.g., 23:00 to 01:00)
+                # Check overlap with the part before midnight
+                if slot_overlaps(
+                    datetime.combine(slot_start.date(), slot_start_time),
+                    datetime.combine(slot_start.date(), slot_end_time),
+                    datetime.combine(slot_start.date(), focus_start),
+                    datetime.combine(slot_start.date(), datetime.max.time())
+                ):
+                    return True
+                # Check overlap with the part after midnight
+                if slot_overlaps(
+                    datetime.combine(slot_start.date(), slot_start_time),
+                    datetime.combine(slot_start.date(), slot_end_time),
+                    datetime.combine(slot_start.date(), datetime.min.time()),
+                    datetime.combine(slot_start.date(), focus_end)
+                ):
+                    return True
+        except Exception as e:
+            logging.warning(f"Error processing focus slot {slot}: {e}")
             continue
     return False
 
@@ -310,30 +380,37 @@ async def get_scheduled_events(
     # Query all tasks for the user with scheduled slots
     tasks = db.query(Task).filter(Task.user_id == current_user.user_id).all()
     logging.warning(f"[scheduled_events] Found {len(tasks)} tasks for user {current_user.user_id}")
-    # Query all calendar days in range for the user
-    calendar_days = db.query(UserCalendarDay).filter(
-        UserCalendarDay.user_id == current_user.user_id,
-        UserCalendarDay.date >= start,
-        UserCalendarDay.date <= end
-    ).all()
-    logging.warning(f"[scheduled_events] Found {len(calendar_days)} calendar days for user {current_user.user_id}")
-    calendar_day_map = {str(d.date): d for d in calendar_days}
+    
+    # Get day contexts using DayContextService (this merges defaults, user settings, and daily overrides)
+    day_contexts = DayContextService.generate_day_contexts_for_range(
+        str(current_user.user_id), start, end, db
+    )
+    logging.warning(f"[scheduled_events] Generated {len(day_contexts)} day contexts")
+    
+    # Create a map of day contexts by date
+    day_context_map = {day.date: day for day in day_contexts}
 
     scheduled_events = []
     for task in tasks:
         slots = task.scheduled_slots if isinstance(task.scheduled_slots, list) else []
         for slot in slots:
-            slot_start = date_parser.isoparse(slot['start_time']).astimezone(timezone.utc) if 'start_time' in slot else None
-            slot_end = date_parser.isoparse(slot['end_time']).astimezone(timezone.utc) if 'end_time' in slot else None
+            # Parse slot times as local time (not UTC) since they come from the frontend as local time
+            slot_start = date_parser.isoparse(slot['start_time']) if 'start_time' in slot else None
+            slot_end = date_parser.isoparse(slot['end_time']) if 'end_time' in slot else None
             if not slot_start or not slot_end:
                 logging.warning(f"[scheduled_events] Skipping slot with missing start/end: {slot}")
                 continue
+            
+            # Convert to UTC for range comparison with the query parameters
+            slot_start_utc = slot_start.astimezone(timezone.utc)
+            slot_end_utc = slot_end.astimezone(timezone.utc)
+            
             # Check if slot overlaps with the requested range
-            if slot_end < start_date or slot_start > end_date:
+            if slot_end_utc < start_date or slot_start_utc > end_date:
                 continue
             # Validation
             validation = {'valid': True, 'reasons': []}
-            calendar_day = calendar_day_map.get(slot_start.strftime('%Y-%m-%d'))
+            calendar_day = day_context_map.get(slot_start.strftime('%Y-%m-%d'))
             if not calendar_day:
                 validation['valid'] = False
                 validation['reasons'].append('No calendar context for this day')
@@ -341,7 +418,9 @@ async def get_scheduled_events(
                 # Check work environment
                 fitting_envs = task.fitting_environments if isinstance(task.fitting_environments, list) else []
                 if isinstance(fitting_envs, list) and len(fitting_envs) > 0:
-                    if calendar_day.work_environment not in fitting_envs:
+                    # Convert task environments to values for comparison
+                    task_envs = [env.value if hasattr(env, 'value') else env for env in fitting_envs]
+                    if calendar_day.work_environment not in task_envs:
                         validation['valid'] = False
                         validation['reasons'].append('Work environment mismatch')
                 # Check availability

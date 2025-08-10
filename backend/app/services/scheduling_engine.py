@@ -6,6 +6,7 @@ import uuid
 
 from ..db.models import Task, UserCalendarDay, SchedulingRule, User
 from ..schemas.scheduling import ValidationResult, SuggestionSlot, RuleEvaluationResult, ValidationResultEnum, ActionEnum
+from ..services.day_context import DayContextService
 
 
 class SchedulingEngine:
@@ -35,30 +36,44 @@ class SchedulingEngine:
             
             # Get the calendar day for the proposed date
             date_str = start_time.strftime("%Y-%m-%d")
-            calendar_day = self.db.query(UserCalendarDay).filter(
-                and_(UserCalendarDay.user_id == uuid.UUID(user_id), UserCalendarDay.date == date_str)
-            ).first()
-            
-            # If no calendar day exists, create a default one or use default settings
-            if not calendar_day:
-                # Create a default calendar day configuration
+
+            # Use DayContextService to get the proper day context
+            day_contexts = DayContextService.generate_day_contexts_for_range(
+                user_id, date_str, date_str, self.db
+            )
+
+            if day_contexts:
+                calendar_day = day_contexts[0]  # Get the first (and only) day context
+            else:
+                # Fallback to user's default work environment
+                user = self.db.query(User).filter(User.user_id == uuid.UUID(user_id)).first()
+                default_env = user.default_work_environment.value if user and user.default_work_environment else "home"
+                
                 calendar_day = UserCalendarDay(
                     user_id=uuid.UUID(user_id),
                     date=date_str,
-                    work_environment="office",  # Default environment
-                    focus_slots=[],  # No focus slots by default
-                    availability_slots=[]  # Always available by default
+                    work_environment=default_env,
+                    focus_slots=[],
+                    availability_slots=[]
                 )
-                # Note: We don't save this to the database immediately to avoid creating unnecessary records
-                # The validation will proceed with the default configuration
             
             # Basic validation checks
             warnings = []
             block_reasons = []
             
             # Check environment compatibility
-            if task.fitting_environments and calendar_day.work_environment not in task.fitting_environments:
-                block_reasons.append(f"Task requires environments: {task.fitting_environments}, but day is set to: {calendar_day.work_environment}")
+            if task.fitting_environments:
+                # Handle both UserCalendarDay (WorkEnvironmentEnum) and CalendarDayResponse (string)
+                if hasattr(calendar_day.work_environment, 'value'):  # WorkEnvironmentEnum
+                    day_env = calendar_day.work_environment.value
+                else:  # String
+                    day_env = calendar_day.work_environment
+                
+                # Convert task environments to values for comparison
+                task_envs = [env.value if hasattr(env, 'value') else env for env in task.fitting_environments]
+                
+                if day_env not in task_envs:
+                    block_reasons.append(f"Task requires environments: {task_envs}, but day is set to: {day_env}")
             
             # Check focus requirements
             if task.requires_focus:
@@ -98,7 +113,7 @@ class SchedulingEngine:
                 block_reasons=[f"Validation error: {str(e)}"]
             )
     
-    def _is_within_focus_time(self, start_time: datetime, end_time: datetime, calendar_day: UserCalendarDay) -> bool:
+    def _is_within_focus_time(self, start_time: datetime, end_time: datetime, calendar_day) -> bool:
         """Check if the proposed time is within focus time slots"""
         if not calendar_day.focus_slots:
             return False
@@ -107,15 +122,20 @@ class SchedulingEngine:
         end_time_str = end_time.strftime("%H:%M")
         
         for slot in calendar_day.focus_slots:
-            slot_start = slot.get("start_time", "")
-            slot_end = slot.get("end_time", "")
+            # Handle both dictionary slots (UserCalendarDay) and Pydantic model slots (CalendarDayResponse)
+            if hasattr(slot, 'start_time'):  # Pydantic model
+                slot_start = slot.start_time
+                slot_end = slot.end_time
+            else:  # Dictionary
+                slot_start = slot.get("start_time", "")
+                slot_end = slot.get("end_time", "")
             
             if slot_start <= start_time_str and end_time_str <= slot_end:
                 return True
         
         return False
     
-    def _is_within_availability(self, start_time: datetime, end_time: datetime, calendar_day: UserCalendarDay) -> bool:
+    def _is_within_availability(self, start_time: datetime, end_time: datetime, calendar_day) -> bool:
         """Check if the proposed time is within available hours"""
         if not calendar_day.availability_slots:
             return True  # If no availability slots defined, assume always available
@@ -124,19 +144,30 @@ class SchedulingEngine:
         end_time_str = end_time.strftime("%H:%M")
         
         for slot in calendar_day.availability_slots:
-            if slot.get("status") == "available":
-                slot_start = slot.get("start_time", "")
-                slot_end = slot.get("end_time", "")
-                
-                if slot_start <= start_time_str and end_time_str <= slot_end:
-                    return True
+            # Handle both dictionary slots (UserCalendarDay) and Pydantic model slots (CalendarDayResponse)
+            if hasattr(slot, 'status'):  # Pydantic model
+                if slot.status == "available":
+                    slot_start = slot.start_time
+                    slot_end = slot.end_time
+                else:
+                    continue
+            else:  # Dictionary
+                if slot.get("status") == "available":
+                    slot_start = slot.get("start_time", "")
+                    slot_end = slot.get("end_time", "")
+                else:
+                    continue
+            
+            print(f"DEBUG::slot_start: {slot_start}, start_time_str: {start_time_str}, slot_end: {slot_end}, end_time_str: {end_time_str}")
+            if slot_start <= start_time_str and end_time_str <= slot_end:
+                return True
         
         return False
     
     def _evaluate_rules(
         self, 
         task: Task, 
-        calendar_day: UserCalendarDay, 
+        calendar_day, 
         start_time: datetime, 
         end_time: datetime,
         user_id: str
@@ -171,7 +202,7 @@ class SchedulingEngine:
         self, 
         rule: SchedulingRule, 
         task: Task, 
-        calendar_day: UserCalendarDay, 
+        calendar_day, 
         start_time: datetime, 
         end_time: datetime
     ) -> bool:
@@ -237,20 +268,26 @@ class SchedulingEngine:
             # Look for slots in the date range
             while current_date <= date_range[1]:
                 date_str = current_date.strftime("%Y-%m-%d")
-                calendar_day = self.db.query(UserCalendarDay).filter(
-                    and_(UserCalendarDay.user_id == uuid.UUID(user_id), UserCalendarDay.date == date_str)
-                ).first()
                 
-                if calendar_day:
+                # Use DayContextService to get the proper day context
+                day_contexts = DayContextService.generate_day_contexts_for_range(
+                    user_id, date_str, date_str, self.db
+                )
+                
+                if day_contexts:
+                    calendar_day = day_contexts[0]  # Get the first (and only) day context
                     # Generate suggestions for this day
                     day_suggestions = self._generate_day_suggestions(task, calendar_day, current_date)
                     suggestions.extend(day_suggestions)
                 else:
-                    # Create default calendar day for suggestions
+                    # Fallback to user's default work environment
+                    user = self.db.query(User).filter(User.user_id == uuid.UUID(user_id)).first()
+                    default_env = user.default_work_environment.value if user and user.default_work_environment else "home"
+                    
                     default_calendar_day = UserCalendarDay(
                         user_id=uuid.UUID(user_id),
                         date=date_str,
-                        work_environment="office",
+                        work_environment=default_env,
                         focus_slots=[],
                         availability_slots=[]
                     )
@@ -271,21 +308,36 @@ class SchedulingEngine:
     def _generate_day_suggestions(
         self, 
         task: Task, 
-        calendar_day: UserCalendarDay, 
+        calendar_day, 
         date: datetime
     ) -> List[SuggestionSlot]:
         """Generate suggestions for a specific day"""
         suggestions = []
         
         # Check if task fits the environment
-        if task.fitting_environments and calendar_day.work_environment not in task.fitting_environments:
-            return suggestions
+        if task.fitting_environments:
+            # Handle both UserCalendarDay (WorkEnvironmentEnum) and CalendarDayResponse (string)
+            if hasattr(calendar_day.work_environment, 'value'):  # WorkEnvironmentEnum
+                day_env = calendar_day.work_environment.value
+            else:  # String
+                day_env = calendar_day.work_environment
+            
+            # Convert task environments to values for comparison
+            task_envs = [env.value if hasattr(env, 'value') else env for env in task.fitting_environments]
+            
+            if day_env not in task_envs:
+                return suggestions
         
         # Generate suggestions based on focus slots
         if calendar_day.focus_slots and task.requires_focus:
             for slot in calendar_day.focus_slots:
-                slot_start = slot.get("start_time", "")
-                slot_end = slot.get("end_time", "")
+                # Handle both dictionary slots (UserCalendarDay) and Pydantic model slots (CalendarDayResponse)
+                if hasattr(slot, 'start_time'):  # Pydantic model
+                    slot_start = slot.start_time
+                    slot_end = slot.end_time
+                else:  # Dictionary
+                    slot_start = slot.get("start_time", "")
+                    slot_end = slot.get("end_time", "")
                 
                 if slot_start and slot_end:
                     # Create suggestion for this focus slot
@@ -303,33 +355,43 @@ class SchedulingEngine:
                             end_time=start_time + task_duration,
                             score=score,
                             reason=f"Focus time slot ({slot_start}-{slot_end})",
-                            calendar_day_id=str(calendar_day.calendar_day_id)
+                            calendar_day_id=str(calendar_day.calendar_day_id) if hasattr(calendar_day, 'calendar_day_id') else None
                         )
                         suggestions.append(suggestion)
         
         # Generate suggestions based on availability slots
         if calendar_day.availability_slots:
             for slot in calendar_day.availability_slots:
-                if slot.get("status") == "available":
-                    slot_start = slot.get("start_time", "")
-                    slot_end = slot.get("end_time", "")
+                # Handle both dictionary slots (UserCalendarDay) and Pydantic model slots (CalendarDayResponse)
+                if hasattr(slot, 'status'):  # Pydantic model
+                    if slot.status == "available":
+                        slot_start = slot.start_time
+                        slot_end = slot.end_time
+                    else:
+                        continue
+                else:  # Dictionary
+                    if slot.get("status") == "available":
+                        slot_start = slot.get("start_time", "")
+                        slot_end = slot.get("end_time", "")
+                    else:
+                        continue
+                
+                if slot_start and slot_end:
+                    start_time = datetime.strptime(f"{date.strftime('%Y-%m-%d')} {slot_start}", "%Y-%m-%d %H:%M")
+                    end_time = datetime.strptime(f"{date.strftime('%Y-%m-%d')} {slot_end}", "%Y-%m-%d %H:%M")
                     
-                    if slot_start and slot_end:
-                        start_time = datetime.strptime(f"{date.strftime('%Y-%m-%d')} {slot_start}", "%Y-%m-%d %H:%M")
-                        end_time = datetime.strptime(f"{date.strftime('%Y-%m-%d')} {slot_end}", "%Y-%m-%d %H:%M")
+                    task_duration = timedelta(minutes=task.estimated_duration_minutes)
+                    if (end_time - start_time) >= task_duration:
+                        score = self._calculate_slot_score(task, calendar_day, start_time, end_time)
                         
-                        task_duration = timedelta(minutes=task.estimated_duration_minutes)
-                        if (end_time - start_time) >= task_duration:
-                            score = self._calculate_slot_score(task, calendar_day, start_time, end_time)
-                            
-                            suggestion = SuggestionSlot(
-                                start_time=start_time,
-                                end_time=start_time + task_duration,
-                                score=score,
-                                reason=f"Available time ({slot_start}-{slot_end})",
-                                calendar_day_id=str(calendar_day.calendar_day_id)
-                            )
-                            suggestions.append(suggestion)
+                        suggestion = SuggestionSlot(
+                            start_time=start_time,
+                            end_time=start_time + task_duration,
+                            score=score,
+                            reason=f"Available time ({slot_start}-{slot_end})",
+                            calendar_day_id=str(calendar_day.calendar_day_id) if hasattr(calendar_day, 'calendar_day_id') else None
+                        )
+                        suggestions.append(suggestion)
         else:
             # If no availability slots defined, create a default suggestion for business hours
             # Default business hours: 9 AM to 5 PM
@@ -354,7 +416,7 @@ class SchedulingEngine:
     def _calculate_slot_score(
         self, 
         task: Task, 
-        calendar_day: UserCalendarDay, 
+        calendar_day, 
         start_time: datetime, 
         end_time: datetime
     ) -> float:
@@ -366,8 +428,18 @@ class SchedulingEngine:
             score += 0.3
         
         # Bonus for environment match
-        if task.fitting_environments and calendar_day.work_environment in task.fitting_environments:
-            score += 0.2
+        if task.fitting_environments:
+            # Handle both UserCalendarDay (WorkEnvironmentEnum) and CalendarDayResponse (string)
+            if hasattr(calendar_day.work_environment, 'value'):  # WorkEnvironmentEnum
+                day_env = calendar_day.work_environment.value
+            else:  # String
+                day_env = calendar_day.work_environment
+            
+            # Convert task environments to values for comparison
+            task_envs = [env.value if hasattr(env, 'value') else env for env in task.fitting_environments]
+            
+            if day_env in task_envs:
+                score += 0.2
         
         # Bonus for priority alignment (higher priority tasks get better slots)
         if task.priority:

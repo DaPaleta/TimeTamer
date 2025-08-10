@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 from typing import List, Optional, Dict, Any
 from datetime import datetime
 from enum import Enum
@@ -61,8 +61,18 @@ class SchedulingRuleResponse(SchedulingRuleCreate):
 
 class ValidationRequest(BaseModel):
     task_id: str
-    proposed_start_time: datetime
-    proposed_end_time: datetime 
+    proposed_start_time: str  # Local time string in format YYYY-MM-DDTHH:MM:SS
+    proposed_end_time: str    # Local time string in format YYYY-MM-DDTHH:MM:SS
+
+    @field_validator('proposed_start_time', 'proposed_end_time')
+    @classmethod
+    def parse_local_datetime(cls, v: str) -> datetime:
+        """Parse local time string as datetime object (treating as local time, not UTC)"""
+        try:
+            # Parse the local time string as a naive datetime (no timezone info)
+            return datetime.fromisoformat(v)
+        except ValueError as e:
+            raise ValueError(f"Invalid datetime format. Expected YYYY-MM-DDTHH:MM:SS, got: {v}") from e
 
 
 class SuggestionRequest(BaseModel):

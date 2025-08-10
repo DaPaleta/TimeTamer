@@ -31,6 +31,22 @@ interface EventReceiveInfo {
   }
 }
 
+// Utility function to format date as local ISO string (without timezone conversion)
+const formatLocalISOString = (date: Date): string => {
+  return (
+    date.getFullYear() +
+    '-' +
+    String(date.getMonth() + 1).padStart(2, '0') +
+    '-' +
+    String(date.getDate()).padStart(2, '0') +
+    'T' +
+    String(date.getHours()).padStart(2, '0') +
+    ':' +
+    String(date.getMinutes()).padStart(2, '0') +
+    ':00'
+  )
+}
+
 // Tooltip component for invalid events
 const InvalidEventWithTooltip: React.FC<{
   reasons: string[]
@@ -291,9 +307,18 @@ export const MyCalendar = () => {
       return
     }
 
-    // Format times as ISO strings
-    const startTime = start.toISOString()
-    const endTime = end.toISOString()
+    // Format times as local ISO strings (without timezone conversion)
+    // This ensures the backend receives the time as the user sees it in the calendar
+    const startTime = formatLocalISOString(start)
+
+    const endTime = formatLocalISOString(end)
+
+    console.log('Sending times to backend:', {
+      startTime,
+      endTime,
+      localStart: start,
+      localEnd: end,
+    })
 
     try {
       // Validate placement before scheduling
@@ -378,9 +403,21 @@ export const MyCalendar = () => {
       return
     }
 
+    // Format times as local ISO strings (without timezone conversion)
+    const startTime = formatLocalISOString(start)
+
+    const endTime = formatLocalISOString(end)
+
+    console.log('Dropping event with times:', {
+      startTime,
+      endTime,
+      localStart: start,
+      localEnd: end,
+    })
+
     try {
       // Validate placement before updating
-      const validation = await validatePlacement(taskId, start.toISOString(), end.toISOString())
+      const validation = await validatePlacement(taskId, startTime, endTime)
 
       if (!validation.is_valid) {
         // Show validation errors
@@ -403,8 +440,8 @@ export const MyCalendar = () => {
       await updateTask(taskId, {
         scheduled_slots: [
           {
-            start_time: start.toISOString(),
-            end_time: end.toISOString(),
+            start_time: startTime,
+            end_time: endTime,
             calendar_day_id: null,
           },
         ],
@@ -430,12 +467,25 @@ export const MyCalendar = () => {
       info.revert()
       return
     }
+
+    // Format times as local ISO strings (without timezone conversion)
+    const startTime = formatLocalISOString(start)
+
+    const endTime = formatLocalISOString(end)
+
+    console.log('Resizing event with times:', {
+      startTime,
+      endTime,
+      localStart: start,
+      localEnd: end,
+    })
+
     try {
       await updateTask(taskId, {
         scheduled_slots: [
           {
-            start_time: start.toISOString(),
-            end_time: end.toISOString(),
+            start_time: startTime,
+            end_time: endTime,
             calendar_day_id: null,
           },
         ],

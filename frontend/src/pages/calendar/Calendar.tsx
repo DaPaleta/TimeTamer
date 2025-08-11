@@ -333,7 +333,11 @@ export const MyCalendar = () => {
         if (validation.suggestions.length > 0) {
           const suggestion = validation.suggestions[0]
           const useSuggestion = confirm(
-            `Would you like to use the suggested time instead?\n${suggestion.reason}`
+            `Would you like to use the suggested time instead?\nTop suggestion: ${new Date(
+              suggestion.start_time
+            ).toLocaleString()} - ${new Date(suggestion.end_time).toLocaleString()}\nReason: ${
+              suggestion.reason
+            }`
           )
           if (useSuggestion) {
             await updateTask(taskId, {
@@ -354,9 +358,37 @@ export const MyCalendar = () => {
 
       // Show warnings if any
       if (validation.warnings.length > 0) {
-        const warningMessage = validation.warnings.join('\n')
-        const proceed = confirm(`Warning:\n${warningMessage}\n\nProceed anyway?`)
-        if (!proceed) return
+        let warningMessage = validation.warnings.join('\n')
+        // If suggestions provided alongside warnings, offer to move to top suggestion
+        if (validation.suggestions && validation.suggestions.length > 0) {
+          const top = validation.suggestions[0]
+          warningMessage += `\n\nTop suggestion: ${new Date(top.start_time).toLocaleString()} - ${new Date(
+            top.end_time
+          ).toLocaleString()}\nReason: ${top.reason}`
+
+          const acceptSuggestion = confirm(
+            `Warning:\n${warningMessage}\n\nApply the top suggestion instead?`
+          )
+          if (acceptSuggestion) {
+            await updateTask(taskId, {
+              scheduled_slots: [
+                {
+                  start_time: top.start_time,
+                  end_time: top.end_time,
+                  calendar_day_id: top.calendar_day_id || null,
+                },
+              ],
+            })
+            fetchAndStoreCalendarData(dateRange)
+            return
+          }
+          // If user rejects, continue to ask if they still want to proceed as-is
+          const proceedAnyway = confirm(`Proceed with your chosen time instead?`)
+          if (!proceedAnyway) return
+        } else {
+          const proceed = confirm(`Warning:\n${warningMessage}\n\nProceed anyway?`)
+          if (!proceed) return
+        }
       }
 
       // Schedule the task
@@ -420,20 +452,68 @@ export const MyCalendar = () => {
       const validation = await validatePlacement(taskId, startTime, endTime)
 
       if (!validation.is_valid) {
-        // Show validation errors
         const errorMessage = validation.block_reasons.join('\n')
         alert(`Cannot move task:\n${errorMessage}`)
+        // Offer suggestions if available
+        if (validation.suggestions.length > 0) {
+          const top = validation.suggestions[0]
+          const useSuggestion = confirm(
+            `Use suggested time instead?\nTop suggestion: ${new Date(top.start_time).toLocaleString()} - ${new Date(
+              top.end_time
+            ).toLocaleString()}\nReason: ${top.reason}`
+          )
+          if (useSuggestion) {
+            await updateTask(taskId, {
+              scheduled_slots: [
+                {
+                  start_time: top.start_time,
+                  end_time: top.end_time,
+                  calendar_day_id: top.calendar_day_id || null,
+                },
+              ],
+            })
+            fetchAndStoreCalendarData(dateRange)
+            return
+          }
+        }
         info.revert()
         return
       }
 
-      // Show warnings if any
       if (validation.warnings.length > 0) {
-        const warningMessage = validation.warnings.join('\n')
-        const proceed = confirm(`Warning:\n${warningMessage}\n\nProceed anyway?`)
-        if (!proceed) {
-          info.revert()
-          return
+        let warningMessage = validation.warnings.join('\n')
+        if (validation.suggestions && validation.suggestions.length > 0) {
+          const top = validation.suggestions[0]
+          warningMessage += `\n\nTop suggestion: ${new Date(top.start_time).toLocaleString()} - ${new Date(
+            top.end_time
+          ).toLocaleString()}\nReason: ${top.reason}`
+          const acceptSuggestion = confirm(
+            `Warning:\n${warningMessage}\n\nApply the top suggestion instead?`
+          )
+          if (acceptSuggestion) {
+            await updateTask(taskId, {
+              scheduled_slots: [
+                {
+                  start_time: top.start_time,
+                  end_time: top.end_time,
+                  calendar_day_id: top.calendar_day_id || null,
+                },
+              ],
+            })
+            fetchAndStoreCalendarData(dateRange)
+            return
+          }
+          const proceedAnyway = confirm('Proceed with your chosen time instead?')
+          if (!proceedAnyway) {
+            info.revert()
+            return
+          }
+        } else {
+          const proceed = confirm(`Warning:\n${warningMessage}\n\nProceed anyway?`)
+          if (!proceed) {
+            info.revert()
+            return
+          }
         }
       }
 

@@ -4,15 +4,17 @@ from typing import List, Optional
 from datetime import datetime
 import uuid
 from sqlalchemy import and_
+from zoneinfo import ZoneInfo
 
 from ...core.auth import get_current_user
 from ...db.session import get_db
-from ...db.models import User, SchedulingRule
+from ...db.models import User, SchedulingRule, Category, WorkEnvironmentEnum
 from ...schemas.scheduling import (
     ValidationResult, SuggestionSlot, SchedulingRuleCreate, 
     SchedulingRuleResponse, ValidationRequest, SuggestionRequest, AutoScheduleRequest
 )
 from ...services.scheduling_engine import SchedulingEngine
+from ...services.day_context import DayContextService
 
 router = APIRouter()
 
@@ -26,10 +28,22 @@ async def validate_placement(
     """Validate if a task can be scheduled at the proposed time"""
     try:
         engine = SchedulingEngine(db)
+        # Normalize proposed times to user's local timezone
+        user_tz = ZoneInfo(current_user.timezone or "UTC")
+        start_time = request.proposed_start_time
+        end_time = request.proposed_end_time
+        if start_time.tzinfo is None:
+            start_time = start_time.replace(tzinfo=user_tz)
+        else:
+            start_time = start_time.astimezone(user_tz)
+        if end_time.tzinfo is None:
+            end_time = end_time.replace(tzinfo=user_tz)
+        else:
+            end_time = end_time.astimezone(user_tz)
         result = engine.validate_placement(
             task_id=request.task_id,
-            start_time=request.proposed_start_time,
-            end_time=request.proposed_end_time,
+            start_time=start_time,
+            end_time=end_time,
             user_id=str(current_user.user_id)
         )
         return result
@@ -227,4 +241,123 @@ async def auto_schedule_tasks(
         )
         return result
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Auto-scheduling failed: {str(e)}") 
+        raise HTTPException(status_code=500, detail=f"Auto-scheduling failed: {str(e)}")
+
+
+@router.get("/rule-builder-config")
+async def get_rule_builder_config(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """Get configuration data for the rule builder UI"""
+    try:
+        # Get user's categories
+        categories = db.query(Category).filter(
+            Category.user_id == current_user.user_id
+        ).all()
+        
+        # Get work environments from enum
+        work_environments = [
+            {"value": env.value, "label": env.value.replace("_", " ").title()}
+            for env in WorkEnvironmentEnum
+        ]
+        
+        # Get focus levels (for time slot and default contexts)
+        focus_levels = [
+            {"value": "high", "label": "High"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "low", "label": "Low"}
+        ]
+        
+        # For time slot 'is_focus_time', only expose top two focus levels
+        time_slot_focus_levels = [
+            {"value": "high", "label": "High"},
+            {"value": "low", "label": "Low"}
+        ]
+        
+        # Get task priorities
+        task_priorities = [
+            {"value": "low", "label": "Low"},
+            {"value": "medium", "label": "Medium"},
+            {"value": "high", "label": "High"},
+            {"value": "urgent", "label": "Urgent"}
+        ]
+        
+        # Get boolean options
+        boolean_options = [
+            {"value": True, "label": "Yes"},
+            {"value": False, "label": "No"}
+        ]
+        
+        return {
+            "categories": [
+                {"value": str(cat.category_id), "label": cat.name}
+                for cat in categories
+            ],
+            "work_environments": work_environments,
+            "focus_levels": focus_levels,
+            "time_slot_focus_levels": time_slot_focus_levels,
+            "task_priorities": task_priorities,
+            "boolean_options": boolean_options,
+            "task_properties": [
+                {"value": "priority", "label": "Priority"},
+                {"value": "requires_focus", "label": "Requires Focus"},
+                {"value": "estimated_duration_minutes", "label": "Duration (minutes)"},
+                {"value": "category_id", "label": "Category"}
+            ],
+            "calendar_day_properties": [
+                {"value": "work_environment", "label": "Work Environment"},
+                {"value": "has_focus_slots", "label": "Has Focus Slots"}
+            ],
+            "time_slot_properties": [
+                {"value": "is_focus_time", "label": "Is Focus Time"},
+                {"value": "is_available", "label": "Is Available"},
+                {"value": "hour_of_day", "label": "Hour of Day"}
+            ],
+            "operators": {
+                "priority": [
+                    {"value": "equals", "label": "equals"},
+                    {"value": "not_equals", "label": "not equals"}
+                ],
+                "requires_focus": [
+                    {"value": "equals", "label": "equals"},
+                    {"value": "not_equals", "label": "not equals"}
+                ],
+                "estimated_duration_minutes": [
+                    {"value": "equals", "label": "equals"},
+                    {"value": "greater_than", "label": "greater than"},
+                    {"value": "less_than", "label": "less than"}
+                ],
+                "category_id": [
+                    {"value": "equals", "label": "equals"},
+                    {"value": "not_equals", "label": "not equals"}
+                ],
+                "work_environment": [
+                    {"value": "equals", "label": "equals"},
+                    {"value": "not_equals", "label": "not equals"},
+                    {"value": "in", "label": "in"},
+                    {"value": "not_in", "label": "not in"}
+                ],
+                "has_focus_slots": [
+                    {"value": "equals", "label": "equals"},
+                    {"value": "not_equals", "label": "not equals"}
+                ],
+                "is_focus_time": [
+                    {"value": "equals", "label": "equals"},
+                    {"value": "not_equals", "label": "not equals"},
+                    {"value": "in", "label": "in"},
+                    {"value": "not_in", "label": "not in"}
+                ],
+                "is_available": [
+                    {"value": "equals", "label": "equals"},
+                    {"value": "not_equals", "label": "not equals"}
+                ],
+                "hour_of_day": [
+                    {"value": "equals", "label": "equals"},
+                    {"value": "greater_than", "label": "greater than"},
+                    {"value": "less_than", "label": "less than"}
+                ]
+            }
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to get rule builder config: {str(e)}") 

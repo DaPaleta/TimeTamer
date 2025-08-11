@@ -37,7 +37,7 @@ class SchedulingEngine:
             # Get the calendar day for the proposed date
             date_str = start_time.strftime("%Y-%m-%d")
 
-            # Use DayContextService to get the proper day context
+            # Use DayContextService to get the proper day context with all layers
             day_contexts = DayContextService.generate_day_contexts_for_range(
                 user_id, date_str, date_str, self.db
             )
@@ -77,8 +77,12 @@ class SchedulingEngine:
             
             # Check focus requirements
             if task.requires_focus:
-                if not self._is_within_focus_time(start_time, end_time, calendar_day):
-                    warnings.append("Task requires focus but scheduled outside focus time")
+                required_level = "high"
+                actual_level = self._get_focus_level_for_timespan(start_time, end_time, calendar_day)
+                if actual_level != required_level:
+                    warnings.append(
+                        "Task requires high focus but the selected time is not within a high-focus slot"
+                    )
             
             # Check availability
             if not self._is_within_availability(start_time, end_time, calendar_day):
@@ -86,6 +90,26 @@ class SchedulingEngine:
             
             # Evaluate scheduling rules
             rule_evaluations = self._evaluate_rules(task, calendar_day, start_time, end_time, user_id)
+            
+            # Process rule actions
+            accumulated_suggestions: List[SuggestionSlot] = []
+            for evaluation in rule_evaluations:
+                if evaluation.triggered:
+                    if evaluation.action == ActionEnum.BLOCK:
+                        block_reasons.append(f"Rule '{evaluation.rule_name}': {evaluation.message or 'Scheduling blocked by rule'}")
+                    elif evaluation.action == ActionEnum.WARN:
+                        warnings.append(f"Rule '{evaluation.rule_name}': {evaluation.message or 'Warning from rule'}")
+                    elif evaluation.action == ActionEnum.SUGGEST_ALTERNATIVE:
+                        # Generate alternative suggestions
+                        suggestions = self.suggest_slots(
+                            task_id=str(task.task_id),
+                            date_range=(start_time, start_time + timedelta(days=7)),
+                            user_id=user_id
+                        )
+                        # Add suggestions to the result
+                        if suggestions:
+                            warnings.append(f"Rule '{evaluation.rule_name}' suggests alternative times")
+                            accumulated_suggestions.extend(suggestions)
             
             # Determine final validation result
             if block_reasons:
@@ -103,7 +127,8 @@ class SchedulingEngine:
                 validation_result=validation_result,
                 warnings=warnings,
                 block_reasons=block_reasons,
-                rule_evaluations=rule_evaluations
+                rule_evaluations=rule_evaluations,
+                suggestions=accumulated_suggestions
             )
             
         except Exception as e:
@@ -210,8 +235,7 @@ class SchedulingEngine:
         if not rule.conditions:
             return False
         
-        # For now, implement basic condition evaluation
-        # This will be expanded in future iterations
+        # All conditions must be true for the rule to trigger
         for condition in rule.conditions:
             source = condition.get("source")
             field = condition.get("field")
@@ -220,6 +244,12 @@ class SchedulingEngine:
             
             if source == "task_property":
                 if not self._evaluate_task_property_condition(task, field, operator, value):
+                    return False
+            elif source == "calendar_day":
+                if not self._evaluate_calendar_day_condition(calendar_day, field, operator, value):
+                    return False
+            elif source == "time_slot":
+                if not self._evaluate_time_slot_condition(calendar_day, start_time, end_time, field, operator, value):
                     return False
         
         return True
@@ -232,17 +262,98 @@ class SchedulingEngine:
             task_value = task.requires_focus
         elif field == "estimated_duration_minutes":
             task_value = task.estimated_duration_minutes
+        elif field == "category_id":
+            task_value = str(task.category_id) if task.category_id else None
         else:
             return True  # Unknown field, skip condition
         
+        return self._apply_operator(task_value, operator, value)
+    
+    def _evaluate_calendar_day_condition(self, calendar_day, field: str, operator: str, value: Any) -> bool:
+        """Evaluate a condition against calendar day properties"""
+        if field == "work_environment":
+            # Handle both UserCalendarDay (WorkEnvironmentEnum) and CalendarDayResponse (string)
+            if hasattr(calendar_day.work_environment, 'value'):  # WorkEnvironmentEnum
+                day_value = calendar_day.work_environment.value
+            else:  # String
+                day_value = calendar_day.work_environment
+        elif field == "has_focus_slots":
+            day_value = len(calendar_day.focus_slots) > 0 if calendar_day.focus_slots else False
+        else:
+            return True  # Unknown field, skip condition
+        
+        return self._apply_operator(day_value, operator, value)
+    
+    def _get_focus_level_for_timespan(self, start_time: datetime, end_time: datetime, calendar_day) -> Optional[str]:
+        """Return the focus level ('high' | 'medium' | 'low') for the timespan if it overlaps any focus slot.
+        If multiple slots overlap, prefer the level of the slot containing the start time; otherwise the first overlap.
+        """
+        if not calendar_day.focus_slots:
+            return None
+        start_time_str = start_time.strftime("%H:%M")
+        end_time_str = end_time.strftime("%H:%M")
+        chosen_level: Optional[str] = None
+        for slot in calendar_day.focus_slots:
+            if hasattr(slot, 'start_time'):
+                slot_start = slot.start_time
+                slot_end = slot.end_time
+                slot_level = getattr(slot, 'focus_level', None)
+            else:
+                slot_start = slot.get("start_time", "")
+                slot_end = slot.get("end_time", "")
+                slot_level = slot.get("focus_level")
+            # Overlap if start < slot_end and end > slot_start (using string comparison HH:MM is safe lexicographically)
+            overlaps = (start_time_str < slot_end) and (end_time_str > slot_start)
+            if not overlaps:
+                continue
+            # Prefer slot that contains the start time
+            if slot_start <= start_time_str <= slot_end:
+                return slot_level
+            # Otherwise keep first overlapping level if none chosen yet
+            if chosen_level is None:
+                chosen_level = slot_level
+        return chosen_level
+
+    def _evaluate_time_slot_condition(self, calendar_day, start_time: datetime, end_time: datetime, field: str, operator: str, value: Any) -> bool:
+        """Evaluate a condition against time slot properties"""
+        if field == "is_focus_time":
+            # If value is boolean, check presence in any focus slot
+            if isinstance(value, bool):
+                slot_value = self._is_within_focus_time(start_time, end_time, calendar_day)
+                return self._apply_operator(slot_value, operator, value)
+            # If value is a string (e.g., 'high' | 'low' | 'medium'), compare to the focus level
+            if isinstance(value, str):
+                level = self._get_focus_level_for_timespan(start_time, end_time, calendar_day)
+                return self._apply_operator(level, operator, value)
+            # If value is a list, support 'in'/'not_in'
+            if isinstance(value, (list, tuple)):
+                level = self._get_focus_level_for_timespan(start_time, end_time, calendar_day)
+                return self._apply_operator(level, operator, value)
+            # Unknown value type; treat as no-op
+            return True
+        elif field == "is_available":
+            slot_value = self._is_within_availability(start_time, end_time, calendar_day)
+            return self._apply_operator(slot_value, operator, value)
+        elif field == "hour_of_day":
+            slot_value = start_time.hour
+            return self._apply_operator(slot_value, operator, value)
+        else:
+            return True  # Unknown field, skip condition
+    
+    def _apply_operator(self, actual_value: Any, operator: str, expected_value: Any) -> bool:
+        """Apply comparison operator between actual and expected values"""
         if operator == "equals":
-            return task_value == value
+            return actual_value == expected_value
         elif operator == "not_equals":
-            return task_value != value
+            return actual_value != expected_value
         elif operator == "greater_than":
-            return task_value > value
+            return actual_value > expected_value
         elif operator == "less_than":
-            return task_value < value
+            return actual_value < expected_value
+        elif operator == "in":
+            return actual_value in expected_value if isinstance(expected_value, (list, tuple)) else False
+        elif operator == "not_in":
+            return actual_value not in expected_value if isinstance(expected_value, (list, tuple)) else True
         
         return True  # Unknown operator, skip condition
     

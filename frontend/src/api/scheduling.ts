@@ -21,7 +21,7 @@ api.interceptors.request.use((config) => {
 // TypeScript interfaces matching our backend schemas
 export interface ValidationResult {
   is_valid: boolean
-  validation_result: 'allowed' | 'blocked' | 'warned'
+  validation_result: string
   warnings: string[]
   block_reasons: string[]
   suggestions: SuggestionSlot[]
@@ -45,11 +45,31 @@ export interface RuleEvaluationResult {
   severity: string
 }
 
+export type ConditionOperator =
+  | 'equals'
+  | 'not_equals'
+  | 'greater_than'
+  | 'less_than'
+  | 'in'
+  | 'not_in'
+
+export interface RuleCondition {
+  source: 'task_property' | 'calendar_day' | 'time_slot'
+  field: string
+  operator: ConditionOperator
+  value: string | number | boolean | string[]
+}
+
+export interface AutoScheduleResult {
+  scheduled_tasks: Array<{ task_id: string; title: string; scheduled_time: string; score: number }>
+  failed_tasks: Array<{ task_id: string; title: string; reason: string; errors?: string[] }>
+}
+
 export interface SchedulingRule {
   rule_id: string
   name: string
   description?: string
-  conditions: any[]
+  conditions: RuleCondition[]
   action: 'allow' | 'block' | 'warn' | 'suggest_alternative'
   alert_message?: string
   priority_order: number
@@ -74,6 +94,19 @@ export interface AutoScheduleRequest {
   task_ids: string[]
   start_date: string
   end_date: string
+}
+
+export interface RuleBuilderConfig {
+  categories: Array<{ value: string; label: string }>
+  work_environments: Array<{ value: string; label: string }>
+  focus_levels: Array<{ value: string; label: string }>
+  time_slot_focus_levels: Array<{ value: string; label: string }>
+  task_priorities: Array<{ value: string; label: string }>
+  boolean_options: Array<{ value: boolean; label: string }>
+  task_properties: Array<{ value: string; label: string }>
+  calendar_day_properties: Array<{ value: string; label: string }>
+  time_slot_properties: Array<{ value: string; label: string }>
+  operators: Record<string, Array<{ value: string; label: string }>>
 }
 
 // API functions
@@ -107,12 +140,17 @@ export async function autoScheduleTasks(
   taskIds: string[],
   startDate: string,
   endDate: string
-): Promise<any> {
+): Promise<AutoScheduleResult> {
   const response = await api.post('/scheduling/auto-schedule', {
     task_ids: taskIds,
     start_date: startDate,
     end_date: endDate,
   })
+  return response.data
+}
+
+export async function getRuleBuilderConfig(): Promise<RuleBuilderConfig> {
+  const response = await api.get('/scheduling/rule-builder-config')
   return response.data
 }
 

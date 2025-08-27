@@ -1,6 +1,6 @@
 from sqlalchemy import (
-    Column, String, Integer, Boolean, DateTime, Text, 
-    ForeignKey, Enum, JSON, CheckConstraint, Index
+    Column, String, Integer, Boolean, DateTime, Text,
+    ForeignKey, Enum, JSON, CheckConstraint, Index, Numeric
 )
 from sqlalchemy.dialects.postgresql import UUID, ARRAY
 from sqlalchemy.orm import declarative_base
@@ -243,3 +243,39 @@ class Goal(Base):
         CheckConstraint("time_period IN ('daily', 'weekly', 'monthly')", name='valid_time_period'),
         CheckConstraint('target_value > 0', name='positive_target_value'),
     ) 
+
+
+class GoalProgressSnapshot(Base):
+    __tablename__ = "goal_progress_snapshots"
+
+    snapshot_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+    goal_id = Column(UUID(as_uuid=True), ForeignKey("goals.goal_id"), nullable=False)
+    period_start = Column(String(10), nullable=False)  # YYYY-MM-DD
+    period_end = Column(String(10), nullable=False)    # YYYY-MM-DD
+    achieved_value = Column(Integer, nullable=False, default=0)
+    target_value = Column(Integer, nullable=False)
+    percent_complete = Column(Numeric(5, 2), nullable=False)
+    taken_at = Column(DateTime, default=func.now(), nullable=False)
+
+    __table_args__ = (
+        Index('idx_goal_progress_user_period', 'user_id', 'period_start', 'period_end'),
+        Index('uq_goal_progress_period', 'goal_id', 'period_start', 'period_end', unique=True),
+    )
+
+
+class AnalyticsDailyMetric(Base):
+    __tablename__ = "analytics_daily_metrics"
+
+    metrics_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.user_id"), nullable=False)
+    date = Column(String(10), nullable=False)  # YYYY-MM-DD
+    total_scheduled_minutes = Column(Integer, nullable=False, default=0)
+    completed_tasks_count = Column(Integer, nullable=False, default=0)
+    focus_minutes = Column(Integer, nullable=False, default=0)
+    category_minutes = Column(JSON, nullable=False, default=dict)
+    created_at = Column(DateTime, default=func.now(), nullable=False)
+
+    __table_args__ = (
+        Index('idx_analytics_daily_user_date', 'user_id', 'date', unique=True),
+    )

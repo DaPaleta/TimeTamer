@@ -101,63 +101,39 @@ const DayContextSettingsPage: React.FC = () => {
     }
   }
 
-  const getSettingIcon = (settingType: string) => {
-    switch (settingType) {
-      case 'work_environment':
-        return <WorkIcon />
-      case 'focus_slots':
-        return <AccessTimeIcon />
-      case 'availability_slots':
-        return <EventAvailableIcon />
-      default:
-        return <WorkIcon />
-    }
-  }
-
-  const getSettingTypeLabel = (settingType: string) => {
-    switch (settingType) {
-      case 'work_environment':
-        return 'Work Environment'
-      case 'focus_slots':
-        return 'Focus Times'
-      case 'availability_slots':
-        return 'Availability'
-      default:
-        return settingType
-    }
-  }
-
   const getPatternDescription = (pattern: RecurrencePattern) => {
+    let value: any
     switch (pattern.pattern_type) {
       case 'daily':
         return `Every ${pattern.interval} day(s)`
       case 'weekly':
-        const days = pattern.days_of_week
+        value = pattern.days_of_week
           .map((d) => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][d])
           .join(', ')
-        return `Every ${pattern.interval} week(s) on ${days}`
+        return `Every ${pattern.interval} week(s) on ${value}`
       case 'monthly':
         return `Every ${pattern.interval} month(s)`
       case 'custom':
-        const customDays = pattern.days_of_week
+        value = pattern.days_of_week
           .map((d) => ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'][d])
           .join(', ')
-        return `Custom: ${customDays}`
+        return `Custom: ${value}`
       default:
         return 'Unknown pattern'
     }
   }
 
   const getValueDescription = (setting: UserDaySetting) => {
+    let value: any
     switch (setting.setting_type) {
       case 'work_environment':
         return `Work from ${(setting.value as any).work_environment}`
       case 'focus_slots':
-        const slots = (setting.value as any).focus_slots
-        return `${slots.length} focus slot(s)`
+        value = (setting.value as any).focus_slots
+        return `${value.length} focus slot(s)`
       case 'availability_slots':
-        const availSlots = (setting.value as any).availability_slots
-        return `${availSlots.length} availability slot(s)`
+        value = (setting.value as any).availability_slots
+        return `${value.length} availability slot(s)`
       default:
         return 'Unknown setting'
     }
@@ -192,7 +168,7 @@ const DayContextSettingsPage: React.FC = () => {
 
       <Grid container spacing={3}>
         {/* Work Environment Section */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
@@ -238,7 +214,7 @@ const DayContextSettingsPage: React.FC = () => {
         </Grid>
 
         {/* Focus Times Section */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>
@@ -284,7 +260,7 @@ const DayContextSettingsPage: React.FC = () => {
         </Grid>
 
         {/* Availability Section */}
-        <Grid item xs={12} md={4}>
+        <Grid size={{ xs: 12, md: 4 }}>
           <Card>
             <CardContent>
               <Box display="flex" alignItems="center" mb={2}>

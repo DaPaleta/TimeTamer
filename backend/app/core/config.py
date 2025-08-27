@@ -1,6 +1,6 @@
 from pydantic_settings import BaseSettings
-from pydantic import Field
-from typing import Optional, List
+from pydantic import Field, field_validator
+from typing import Optional, List, Union
 import os
 
 
@@ -23,8 +23,14 @@ class Settings(BaseSettings):
     access_token_expire_minutes: int = Field(30, validation_alias="ACCESS_TOKEN_EXPIRE_MINUTES")
     refresh_token_expire_days: int = Field(7, validation_alias="REFRESH_TOKEN_EXPIRE_DAYS")
     
-    # CORS
-    allowed_origins: List[str] = Field(default_factory=lambda: ["http://localhost:5173", "http://localhost:3000"], validation_alias="ALLOWED_ORIGINS")
+    # CORS - Handle as string first, then convert to list
+    allowed_origins_raw: Optional[str] = Field(None, validation_alias="ALLOWED_ORIGINS")
+    
+    @property
+    def allowed_origins(self) -> List[str]:
+        if self.allowed_origins_raw:
+            return [origin.strip() for origin in self.allowed_origins_raw.split(',') if origin.strip()]
+        return ["http://localhost:5173", "http://localhost:3000"]
     
     # Rate Limiting
     rate_limit_requests: int = Field(100, validation_alias="RATE_LIMIT_REQUESTS")

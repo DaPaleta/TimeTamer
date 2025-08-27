@@ -4,6 +4,7 @@ import { CalendarProvider, useCalendarContext } from '../../context/CalendarCont
 import { fetchTasks } from '../../api/tasks'
 import type { Task } from '../../api/tasks'
 import TaskList from '../../components/tasks/TaskList'
+import QuickStatsWidget from '../../components/analytics/QuickStatsWidget'
 import { ThirdPartyDraggable } from '@fullcalendar/interaction/index.js'
 import './CalendarPage.css'
 
@@ -105,6 +106,7 @@ const CalendarPage = () => {
       <div className="calendar-page-layout">
         <div className="calendar-container">
           <h2>Calendar</h2>
+          <QuickStatsWidget dateRange="7d" />
           <div className="calendar-wrapper">
             <MyCalendar />
           </div>

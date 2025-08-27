@@ -275,7 +275,7 @@ Create:
 
 ### Week 11: Frontend goals and quick stats
 
-- API clients (`goals.ts`, `analytics.ts`) with TanStack Query.
+- API clients (`goals.ts`, `analytics.ts`).
 - Goals pages and components.
 - QuickStatsWidget integrated into calendar and task views.
 - Component tests.

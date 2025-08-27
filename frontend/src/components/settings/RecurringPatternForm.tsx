@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react'
+import React, { useState } from 'react'
 import {
   Box,
   TextField,
@@ -11,14 +11,13 @@ import {
   Button,
   Grid,
   Typography,
-  Chip,
   Stack,
   FormGroup,
 } from '@mui/material'
-import { TimePicker } from '@mui/x-date-pickers/TimePicker'
+
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDateFns } from '@mui/x-date-pickers/AdapterDateFns'
-import { format, parse } from 'date-fns'
+import { format } from 'date-fns'
 import type {
   UserDaySetting,
   UserDaySettingCreate,
@@ -195,7 +194,7 @@ export const RecurringPatternForm: React.FC<RecurringPatternFormProps> = ({
       <Box sx={{ p: 2 }}>
         <Grid container spacing={3}>
           {/* Setting Type */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <FormControl fullWidth>
               <InputLabel>Setting Type</InputLabel>
               <Select
@@ -211,7 +210,7 @@ export const RecurringPatternForm: React.FC<RecurringPatternFormProps> = ({
           </Grid>
 
           {/* Pattern Type */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <FormControl fullWidth>
               <InputLabel>Pattern Type</InputLabel>
               <Select
@@ -229,7 +228,7 @@ export const RecurringPatternForm: React.FC<RecurringPatternFormProps> = ({
 
           {/* Interval */}
           {patternType !== 'custom' && (
-            <Grid item xs={12} md={6}>
+            <Grid size={{ xs: 12, md: 6 }}>
               <TextField
                 fullWidth
                 type="number"
@@ -244,7 +243,7 @@ export const RecurringPatternForm: React.FC<RecurringPatternFormProps> = ({
 
           {/* Days of Week */}
           {(patternType === 'weekly' || patternType === 'custom') && (
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Typography variant="subtitle2" gutterBottom>
                 Days of Week
               </Typography>
@@ -266,7 +265,7 @@ export const RecurringPatternForm: React.FC<RecurringPatternFormProps> = ({
           )}
 
           {/* Date Range */}
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
               type="date"
@@ -277,7 +276,7 @@ export const RecurringPatternForm: React.FC<RecurringPatternFormProps> = ({
             />
           </Grid>
 
-          <Grid item xs={12} md={6}>
+          <Grid size={{ xs: 12, md: 6 }}>
             <TextField
               fullWidth
               type="date"
@@ -289,14 +288,14 @@ export const RecurringPatternForm: React.FC<RecurringPatternFormProps> = ({
           </Grid>
 
           {/* Setting Values */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Typography variant="h6" gutterBottom>
               Configuration
             </Typography>
           </Grid>
 
           {settingType === 'work_environment' && (
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <FormControl fullWidth>
                 <InputLabel>Work Environment</InputLabel>
                 <Select
@@ -315,7 +314,7 @@ export const RecurringPatternForm: React.FC<RecurringPatternFormProps> = ({
           )}
 
           {settingType === 'focus_slots' && (
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box>
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                   <Typography variant="subtitle1">Focus Time Slots</Typography>
@@ -370,7 +369,7 @@ export const RecurringPatternForm: React.FC<RecurringPatternFormProps> = ({
           )}
 
           {settingType === 'availability_slots' && (
-            <Grid item xs={12}>
+            <Grid size={{ xs: 12 }}>
               <Box>
                 <Box display="flex" justifyContent="space-between" alignItems="center" mb={2}>
                   <Typography variant="subtitle1">Availability Slots</Typography>
@@ -427,7 +426,7 @@ export const RecurringPatternForm: React.FC<RecurringPatternFormProps> = ({
           )}
 
           {/* Actions */}
-          <Grid item xs={12}>
+          <Grid size={{ xs: 12 }}>
             <Box display="flex" gap={2} justifyContent="flex-end">
               <Button onClick={onCancel} disabled={saving}>
                 Cancel

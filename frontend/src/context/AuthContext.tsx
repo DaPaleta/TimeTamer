@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react'
+import { createContext, useContext, useState, useEffect, useRef } from 'react'
 import type { ReactNode } from 'react'
 import {
   login as apiLogin,
@@ -71,7 +71,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (accessToken && refreshToken && expiresAt) {
       const now = Date.now()
       const msUntilRefresh = Math.max(expiresAt - now - 60 * 1000, 0) // refresh 1 min before expiry
-      refreshTimeout.current = setTimeout(() => {
+      refreshTimeout.current = window.setTimeout(() => {
         handleRefresh()
       }, msUntilRefresh)
     }

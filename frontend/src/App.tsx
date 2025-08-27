@@ -15,8 +15,8 @@ import Login from './pages/auth/Login'
 import Register from './pages/auth/Register'
 import SchedulingRulesPage from './pages/settings/SchedulingRulesPage'
 
-// Placeholder components for other routes
-const AnalyticsPage = () => <div>Analytics Page (Coming Soon)</div>
+import DashboardPage from './pages/analytics/DashboardPage'
+import GoalsPage from './pages/goals/GoalsPage'
 
 const ProtectedRoute: React.FC = () => {
   const { isAuthenticated } = useAuth()
@@ -39,7 +39,8 @@ export const App: React.FC = () => {
                     <Route index element={<Navigate to="/tasks" replace />} />
                     <Route path="tasks" element={<TaskListPage />} />
                     <Route path="calendar" element={<CalendarPage />} />
-                    <Route path="analytics" element={<AnalyticsPage />} />
+                    <Route path="analytics" element={<DashboardPage />} />
+                    <Route path="goals" element={<GoalsPage />} />
                     <Route path="settings" element={<CategoryManagerPage />} />
                     <Route path="day-context-settings" element={<DayContextSettingsPage />} />
                     <Route path="rules" element={<SchedulingRulesPage />} />

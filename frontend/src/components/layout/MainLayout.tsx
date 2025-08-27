@@ -32,6 +32,7 @@ const menuItems = [
   { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
   { text: 'Day Context', icon: <SettingsIcon />, path: '/day-context-settings' },
   { text: 'Rules', icon: <SettingsIcon />, path: '/rules' },
+  { text: 'Goals', icon: <AssessmentIcon />, path: '/goals' },
 ]
 
 export const MainLayout: React.FC = () => {

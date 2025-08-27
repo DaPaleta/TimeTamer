@@ -19,6 +19,7 @@ import SearchIcon from '@mui/icons-material/Search'
 import AddIcon from '@mui/icons-material/Add'
 import { TaskCard } from '../../components/tasks/TaskCard'
 import NewTaskDialog from '../../components/tasks/NewTaskDialog'
+import QuickStatsWidget from '../../components/analytics/QuickStatsWidget'
 import { fetchTasks, deleteTask, fetchCategories } from '../../api/tasks'
 import type { Task, Category, FetchTasksParams } from '../../api/tasks'
 
@@ -245,6 +246,10 @@ export const TaskListPage: React.FC = () => {
             </TextField>
           </Grid>
         </Grid>
+      </Box>
+
+      <Box sx={{ mb: 3 }}>
+        <QuickStatsWidget dateRange="7d" />
       </Box>
 
       {loading ? (

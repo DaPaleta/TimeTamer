@@ -1,4 +1,4 @@
-# Task Planning Application - Refined Architectural Design Document
+# TimeTamer - Intelligent Task Planning Application - Refined Architectural Design Document
 
 **Version:** 3.0  
 **Date:** May 28, 2025  
@@ -6,9 +6,10 @@
 
 ## 1. Executive Summary
 
-This document defines the architecture for a Task Planning Application that enables users to optimize productivity through intelligent task scheduling, environment-aware calendar management, and goal-driven analytics. The application integrates task properties with calendar constraints using a rule-based scheduling engine to provide automated suggestions and validation.
+This document defines the architecture for TimeTamer, an intelligent task planning application that enables users to optimize productivity through intelligent task scheduling, environment-aware calendar management, and goal-driven analytics. The application integrates task properties with calendar constraints using a rule-based scheduling engine to provide automated suggestions and validation.
 
 **Key Differentiators:**
+
 - Environment-aware scheduling (home/office/outdoors)
 - Focus-time optimization
 - Rule-based intelligent scheduling
@@ -18,6 +19,7 @@ This document defines the architecture for a Task Planning Application that enab
 ## 2. System Architecture Overview
 
 ### 2.1 Core Components
+
 ```
 ┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
 │   Frontend      │    │   Backend       │    │  Infrastructure │
@@ -30,6 +32,7 @@ This document defines the architecture for a Task Planning Application that enab
 ```
 
 ### 2.2 Data Flow Architecture
+
 1. **User Input** → Frontend validation → API calls
 2. **API Layer** → Business logic validation → Database operations
 3. **Scheduling Engine** → Rule evaluation → Placement validation/suggestions
@@ -41,6 +44,7 @@ This document defines the architecture for a Task Planning Application that enab
 ### 3.1 Core Entities
 
 #### User
+
 ```sql
 CREATE TABLE users (
     user_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -61,6 +65,7 @@ CREATE TYPE focus_level_enum AS ENUM ('high', 'medium', 'low');
 ```
 
 #### Calendar Day Configuration
+
 ```sql
 CREATE TABLE user_calendar_days (
     calendar_day_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -76,6 +81,7 @@ CREATE TABLE user_calendar_days (
 ```
 
 #### Categories
+
 ```sql
 CREATE TABLE categories (
     category_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -88,6 +94,7 @@ CREATE TABLE categories (
 ```
 
 #### Tasks (Core Entity)
+
 ```sql
 CREATE TABLE tasks (
     task_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -103,7 +110,7 @@ CREATE TABLE tasks (
     jira_link VARCHAR(500),
     fitting_environments work_environment_enum[] DEFAULT '{"home"}',
     parent_task_id UUID REFERENCES tasks(task_id) ON DELETE CASCADE,
-    
+
     -- Task Properties (Boolean flags)
     requires_focus BOOLEAN DEFAULT false,
     requires_deep_work BOOLEAN DEFAULT false,
@@ -111,14 +118,14 @@ CREATE TABLE tasks (
     requires_meeting BOOLEAN DEFAULT false,
     is_endless BOOLEAN DEFAULT false,
     is_recurring BOOLEAN DEFAULT false,
-    
+
     -- Recurring Pattern
     recurring_pattern JSONB, -- {"frequency": "weekly", "interval": 1, "days_of_week": ["MO", "WE"], "end_date": "2025-12-31"}
-    
+
     -- Scheduling Information
     scheduled_slots JSONB DEFAULT '[]', -- [{"start_time": "2025-05-28T09:00:00Z", "end_time": "2025-05-28T10:30Z", "calendar_day_id": "uuid"}]
     current_alerts TEXT[], -- Active scheduling warnings/blocks
-    
+
     created_at TIMESTAMP DEFAULT NOW(),
     updated_at TIMESTAMP DEFAULT NOW()
 );
@@ -129,6 +136,7 @@ CREATE INDEX idx_tasks_user_category ON tasks(user_id, category_id);
 ```
 
 #### Task Comments
+
 ```sql
 CREATE TABLE task_comments (
     comment_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -141,6 +149,7 @@ CREATE TABLE task_comments (
 ```
 
 #### Scheduling Rules
+
 ```sql
 CREATE TABLE scheduling_rules (
     rule_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -160,6 +169,7 @@ COMMENT ON COLUMN scheduling_rules.conditions IS 'Array of condition objects wit
 ```
 
 #### Goals
+
 ```sql
 CREATE TABLE goals (
     goal_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -179,6 +189,7 @@ CREATE TABLE goals (
 ## 4. API Specification
 
 ### 4.1 Authentication & User Management
+
 **Team: Backend Core**
 
 ```yaml
@@ -194,6 +205,7 @@ PUT    /api/v1/users/me
 ```
 
 ### 4.2 Calendar Management APIs
+
 **Team: Backend Core**
 
 ```yaml
@@ -217,6 +229,7 @@ POST   /api/v1/calendar/days/bulk-update
 ```
 
 ### 4.3 Task Management APIs
+
 **Team: Backend Core**
 
 ```yaml
@@ -245,6 +258,7 @@ DELETE /api/v1/categories/{category_id}
 ```
 
 ### 4.4 Scheduling Engine APIs
+
 **Team: Backend Data**
 
 ```yaml
@@ -261,6 +275,7 @@ DELETE /api/v1/scheduling/rules/{rule_id}
 ```
 
 **Validate Placement Request/Response:**
+
 ```json
 // Request
 {
@@ -287,6 +302,7 @@ DELETE /api/v1/scheduling/rules/{rule_id}
 ```
 
 ### 4.5 Goals & Analytics APIs
+
 **Team: Backend Data + Frontend Analytics**
 
 ```yaml
@@ -306,9 +322,11 @@ GET    /api/v1/analytics/export?format=csv&start_date=YYYY-MM-DD&end_date=YYYY-M
 ## 5. Backend Engineering Responsibilities
 
 ### 5.1 Backend Core Team
+
 **Primary Focus: API Layer & Core Business Logic**
 
 **Deliverables:**
+
 - Complete REST API implementation with OpenAPI documentation
 - Authentication & authorization middleware
 - Input validation and sanitization
@@ -317,6 +335,7 @@ GET    /api/v1/analytics/export?format=csv&start_date=YYYY-MM-DD&end_date=YYYY-M
 - Basic CRUD operations for all entities
 
 **Technical Requirements:**
+
 - JWT-based authentication with refresh tokens
 - Role-based access control (future: team collaboration)
 - Request rate limiting (100 requests/minute per user)
@@ -325,11 +344,13 @@ GET    /api/v1/analytics/export?format=csv&start_date=YYYY-MM-DD&end_date=YYYY-M
 - API response time < 200ms (95th percentile)
 
 ### 5.2 Backend Data Team
+
 **Primary Focus: Business Logic Engines**
 
 **Deliverables:**
 
 #### Scheduling Engine
+
 ```python
 # Pseudo-code structure
 class SchedulingEngine:
@@ -340,12 +361,14 @@ class SchedulingEngine:
 ```
 
 **Key Features:**
+
 - Rule evaluation with priority ordering
 - Conflict detection (time overlaps, environment mismatches)
 - Optimization scoring (priority + deadline + focus time alignment)
 - Constraint satisfaction (environment, focus requirements)
 
 #### Analytics Engine
+
 ```python
 class AnalyticsEngine:
     def calculate_quick_stats(self, user_id, date_range) -> QuickStats
@@ -355,6 +378,7 @@ class AnalyticsEngine:
 ```
 
 **Metrics to Track:**
+
 - Category time distribution
 - Task completion rates
 - Goal achievement percentages
@@ -363,9 +387,11 @@ class AnalyticsEngine:
 - Productivity trends
 
 ### 5.3 Backend Infrastructure Team
+
 **Primary Focus: Scalability & Operations**
 
 **Deliverables:**
+
 - Database schema optimization with proper indexing
 - Redis caching strategy for frequently accessed data
 - Background job processing (Celery/RQ)
@@ -375,6 +401,7 @@ class AnalyticsEngine:
 - Environment management (dev/staging/prod)
 
 **Performance Requirements:**
+
 - Database query response time < 50ms for simple queries
 - Cache hit ratio > 80% for user session data
 - Background job processing < 5 minutes for recurring tasks
@@ -384,17 +411,20 @@ class AnalyticsEngine:
 ## 6. Frontend Engineering Responsibilities
 
 ### 6.1 Frontend Core Team
+
 **Primary Focus: Core UI & User Experience**
 
 **Deliverables:**
 
 #### Authentication & User Management
+
 - Login/registration flows with form validation
 - Password reset functionality
 - User profile management
 - Session management with automatic token refresh
 
 #### Calendar Interface
+
 ```jsx
 // Key Components
 <CalendarView mode="daily|weekly|monthly" />
@@ -405,6 +435,7 @@ class AnalyticsEngine:
 ```
 
 **Features:**
+
 - Responsive calendar grid (mobile-first)
 - Interactive drag-and-drop task scheduling
 - Visual feedback for scheduling validation
@@ -412,6 +443,7 @@ class AnalyticsEngine:
 - Real-time updates during scheduling
 
 #### Task Management Interface
+
 ```jsx
 // Core Components
 <TaskListView view="category|priority|deadline" />
@@ -422,6 +454,7 @@ class AnalyticsEngine:
 ```
 
 **Features:**
+
 - Three distinct list views with smooth transitions
 - Advanced filtering and sorting
 - Quick task creation with smart defaults
@@ -429,11 +462,13 @@ class AnalyticsEngine:
 - Real-time search with debounced input
 
 ### 6.2 Frontend Features Team
+
 **Primary Focus: Advanced Features**
 
 **Deliverables:**
 
 #### Scheduling Rules Interface
+
 ```jsx
 <RuleBuilder />
 <RuleConditionEditor />
@@ -442,12 +477,14 @@ class AnalyticsEngine:
 ```
 
 **Features:**
+
 - Visual rule builder with drag-and-drop conditions
 - Real-time rule validation and preview
 - Rule conflict detection and warnings
 - Template-based rule creation
 
 #### Advanced Scheduling
+
 ```jsx
 <AutoScheduler />
 <SchedulingSuggestions />
@@ -456,11 +493,13 @@ class AnalyticsEngine:
 ```
 
 ### 6.3 Frontend Analytics Team
+
 **Primary Focus: Data Visualization**
 
 **Deliverables:**
 
 #### Goals Interface
+
 ```jsx
 <GoalCreation />
 <GoalProgress />
@@ -468,6 +507,7 @@ class AnalyticsEngine:
 ```
 
 #### Analytics Dashboard
+
 ```jsx
 <QuickStatsWidget />
 <ProductivityDashboard />
@@ -477,6 +517,7 @@ class AnalyticsEngine:
 ```
 
 **Visualization Requirements:**
+
 - Real-time chart updates using Chart.js/D3.js
 - Responsive data visualizations
 - Interactive filtering and drill-down
@@ -486,18 +527,20 @@ class AnalyticsEngine:
 ## 7. Integration Points & Shared Responsibilities
 
 ### 7.1 Real-time Features
+
 **Teams: Backend Core + Frontend Core**
 
 ```javascript
 // WebSocket Events
-- task.scheduled
-- task.updated
-- calendar.updated
-- rule.triggered
-- goal.progress_updated
+-task.scheduled -
+  task.updated -
+  calendar.updated -
+  rule.triggered -
+  goal.progress_updated;
 ```
 
 ### 7.2 State Management Strategy
+
 **Team: Frontend Core**
 
 ```javascript
@@ -512,9 +555,11 @@ class AnalyticsEngine:
 ```
 
 ### 7.3 Error Handling & UX
+
 **All Teams**
 
 **Backend Error Format:**
+
 ```json
 {
   "error": {
@@ -530,6 +575,7 @@ class AnalyticsEngine:
 ```
 
 **Frontend Error Handling:**
+
 - Toast notifications for transient errors
 - Inline validation feedback
 - Graceful degradation for offline scenarios
@@ -538,65 +584,79 @@ class AnalyticsEngine:
 ## 8. Implementation Roadmap
 
 ### Phase 1: Foundation (Weeks 1-4)
+
 **MVP Core Features**
 
 **Backend Core:**
+
 - User authentication and profile management
 - Basic task CRUD operations
 - Category management
 - Calendar day configuration APIs
 
 **Frontend Core:**
+
 - Authentication flows
 - Basic task list views (category, priority, deadline)
 - Simple calendar interface
 - Task creation and editing
 
 **Success Criteria:**
+
 - Users can register, login, and manage tasks
 - Basic calendar functionality works
 - Tasks can be manually scheduled
 
 ### Phase 2: Intelligent Scheduling (Weeks 5-8)
+
 **Scheduling Engine Integration**
 
 **Backend Data:**
+
 - Scheduling rules engine
 - Validation and suggestion APIs
 - Basic rule evaluation logic
 
 **Frontend Features:**
+
 - Rule builder interface
 - Scheduling validation feedback
 - Drag-and-drop with real-time validation
 
 **Success Criteria:**
+
 - Rules can be created and evaluated
 - Scheduling conflicts are detected
 - Users receive helpful scheduling suggestions
 
 ### Phase 3: Analytics & Goals (Weeks 9-12)
+
 **Data-Driven Insights**
 
 **Backend Data:**
+
 - Analytics calculation engine
 - Goal progress tracking
 - Quick stats generation
 
 **Frontend Analytics:**
+
 - Goal creation and management
 - Quick stats integration in main views
 - Basic dashboard with key metrics
 
 **Success Criteria:**
+
 - Users can set and track goals
 - Productivity insights are accurate
 - Dashboard provides actionable data
 
 ### Phase 4: Polish & Scale (Weeks 13-16)
+
 **Production Readiness**
 
 **All Teams:**
+
 - Performance optimization
 - Comprehensive testing
 - Security audit
@@ -606,18 +666,21 @@ class AnalyticsEngine:
 ## 9. Success Metrics & KPIs
 
 ### 9.1 User Engagement
+
 - **Daily Active Users:** Target 70% of registered users active weekly
 - **Task Completion Rate:** Target 75% of created tasks completed
 - **Feature Adoption:** 60% of users create scheduling rules within first month
 - **Session Duration:** Average 15+ minutes per session
 
 ### 9.2 System Performance
+
 - **API Response Time:** 95th percentile < 200ms
 - **Client Load Time:** First meaningful paint < 2 seconds
 - **System Uptime:** 99.9% availability
 - **Error Rate:** < 0.1% of all requests result in errors
 
 ### 9.3 Business Impact
+
 - **Goal Achievement:** Users achieve 80% of their set goals
 - **Productivity Improvement:** Measurable increase in task completion efficiency
 - **User Satisfaction:** NPS score > 50
@@ -626,12 +689,14 @@ class AnalyticsEngine:
 ## 10. Technical Standards & Best Practices
 
 ### 10.1 Code Quality
+
 - **Test Coverage:** Minimum 80% for backend business logic, 70% for frontend components
 - **Code Review:** All code must be reviewed by at least one team member
 - **Documentation:** All APIs documented with OpenAPI, components with JSDoc
 - **Linting:** ESLint for frontend, Pylint/Black for Python backend
 
 ### 10.2 Security Requirements
+
 - **Data Encryption:** TLS 1.3 for all API communication
 - **Password Security:** Bcrypt with minimum 12 rounds
 - **Input Validation:** Server-side validation for all inputs
@@ -639,6 +704,7 @@ class AnalyticsEngine:
 - **XSS Protection:** Content Security Policy headers
 
 ### 10.3 Monitoring & Observability
+
 - **Application Logs:** Structured JSON logging with correlation IDs
 - **Performance Monitoring:** APM tool integration (DataDog/New Relic)
 - **Error Tracking:** Comprehensive error reporting (Sentry)
@@ -649,3 +715,61 @@ class AnalyticsEngine:
 **Document Prepared By:** Senior Product Manager  
 **Next Review Date:** June 15, 2025  
 **Stakeholders:** Engineering Teams, Product Management, QA
+
+## Development Environment Setup
+
+### Docker-Based Development
+
+TimeTamer uses Docker for consistent development environments across all platforms:
+
+#### Prerequisites
+
+- **Docker Desktop** with WSL2 integration (Windows)
+- **Node.js 18+** and **npm** (for local frontend development)
+- **Python 3.11+** (optional for local backend development)
+
+#### Quick Development Setup
+
+1. **Clone the repository**
+
+   ```bash
+   git clone https://github.com/yourusername/timetamer.git
+   cd timetamer
+   ```
+
+2. **Start backend services with Docker**
+
+   ```bash
+   # Windows
+   docker-scripts.bat dev-setup
+
+   # Linux/macOS
+   ./docker-scripts.sh dev-setup
+   ```
+
+3. **Run frontend locally**
+
+   ```bash
+   cd frontend
+   npm install
+   npm run dev
+   ```
+
+4. **Access the application**
+   - Frontend: http://localhost:5173
+   - Backend API: http://localhost:8000
+   - API Documentation: http://localhost:8000/docs
+
+#### Production Deployment
+
+```bash
+# Copy production environment
+cp env.production .env.production
+# Edit .env.production with your values
+
+# Deploy with Docker
+docker-scripts.bat prod-setup  # Windows
+./docker-scripts.sh prod-setup # Linux/macOS
+```
+
+For detailed Docker setup instructions, see [DOCKER_README.md](../DOCKER_README.md).

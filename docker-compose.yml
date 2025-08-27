@@ -1,0 +1,141 @@
+version: '3.8'
+
+services:
+  # Database
+  db:
+    image: postgres:15-alpine
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    environment:
+      - POSTGRES_DB=planner_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-postgres}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - planner-network
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - planner-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      target: development
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+      - /app/.pytest_cache
+    ports:
+      - "8000:8000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/planner_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - SECRET_KEY=your-secret-key-for-development-change-in-production
+      - JWT_SECRET=your-jwt-secret-for-development-change-in-production
+      - ENVIRONMENT=development
+      - DEBUG=true
+      - ALLOWED_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:8080
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - planner-network
+    restart: unless-stopped
+
+  # Celery Worker
+  celery_worker:
+    build:
+      context: ./backend
+      target: development
+    command: celery -A app.celery.celery_app worker --loglevel=info --concurrency=2
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/planner_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - SECRET_KEY=your-secret-key-for-development-change-in-production
+      - JWT_SECRET=your-jwt-secret-for-development-change-in-production
+      - ENVIRONMENT=development
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - planner-network
+    restart: unless-stopped
+
+  # Celery Beat (for scheduled tasks)
+  celery_beat:
+    build:
+      context: ./backend
+      target: development
+    command: celery -A app.celery.celery_app beat --loglevel=info
+    volumes:
+      - ./backend:/app
+      - /app/__pycache__
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@db:5432/planner_db
+      - REDIS_URL=redis://redis:6379/0
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+      - SECRET_KEY=your-secret-key-for-development-change-in-production
+      - JWT_SECRET=your-jwt-secret-for-development-change-in-production
+      - ENVIRONMENT=development
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - planner-network
+    restart: unless-stopped
+
+  # Frontend (only for production - in development, run locally with Vite)
+  frontend:
+    build:
+      context: ./frontend
+      target: production
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    networks:
+      - planner-network
+    restart: unless-stopped
+    profiles:
+      - production
+
+volumes:
+  postgres_data:
+  redis_data:
+
+networks:
+  planner-network:
+    driver: bridge 
